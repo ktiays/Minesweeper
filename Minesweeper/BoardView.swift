@@ -134,6 +134,10 @@ struct PieceView: View {
 
         return x == interactionAnchor.x && y == interactionAnchor.y
     }
+    
+    private var isGameOver: Bool {
+        minefield.isExploded || minefield.isCompleted
+    }
 
     init(
         x: Int,
@@ -261,18 +265,23 @@ struct PieceView: View {
 
                     RoundedRectangle(cornerRadius: expandMenu ? (geometry.size.width / 2) : 12)
                         .overlay {
-                            ZStack {
-                                if isExploded && location.hasMine {
+                            ZStack(alignment: .topTrailing) {
+                                let isFlagged = (location.flag == .flag)
+                                let showMine = isExploded && location.hasMine
+                                let tagMode = isFlagged && showMine
+                                if showMine {
                                     BombIcon()
                                         .foregroundStyle(.black.opacity(0.46))
-                                        .padding(10)
+                                        .padding(tagMode ? 8 : 6)
+                                        .offset(x: tagMode ? -3 : 0, y: tagMode ? 3 : 0)
                                 }
-                                if location.flag == .flag {
+                                if isFlagged {
                                     Image(systemName: "flag.fill")
-                                        .font(.system(size: 20, weight: .bold))
+                                        .font(.system(size: tagMode ? 13 : 20, weight: .bold))
                                         .foregroundStyle(.white)
                                 }
                             }
+                            .padding(4)
                         }
                         .scaleEffect(isPressed ? 0.9 : 1)
                         .offset(calculatePieceOffset())
@@ -324,6 +333,7 @@ struct PieceView: View {
                 }
             }
             .opacity(pieceOpacity)
+            .padding(1)
             .animation(
                 explodeFallingStageAnimation.delay(explodeDelay),
                 value: isExploded
@@ -337,6 +347,8 @@ struct PieceView: View {
 
                     withAnimation(.spring(duration: 0.24)) {
                         isPressed = true
+                        
+                        if isGameOver { return }
 
                         if location.isCleared {
                             if location.numberOfMinesAround > 0 {
@@ -360,6 +372,9 @@ struct PieceView: View {
                 .onEnded { _ in
                     withAnimation(.spring(duration: 0.24)) {
                         isPressed = false
+                        
+                        if isGameOver { return }
+                        
                         translation = .zero
                         if !expandMenu {
                             animationAnchor = position
@@ -518,7 +533,7 @@ struct BombIcon: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Canvas { context, size in
+        Canvas(rendersAsynchronously: true) { context, size in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let length = min(size.width, size.height)
             let padding = length / 2 * 0.3

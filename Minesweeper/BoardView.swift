@@ -52,7 +52,7 @@ struct MinefieldLayout: Layout {
     }
 }
 
-let textColorMap: [Int: Color] = [
+private let textColorMap: [Int: Color] = [
     1: .oneText,
     2: .twoText,
     3: .threeText,
@@ -63,7 +63,7 @@ let textColorMap: [Int: Color] = [
     8: .eightText,
 ]
 
-func numberTextColor(for number: Int) -> Color {
+private func numberTextColor(for number: Int) -> Color {
     textColorMap[number, default: .primary]
 }
 
@@ -127,6 +127,14 @@ struct PieceView: View {
     @State private var topContentFeedback: Bool = false
     @State private var bottomContentFeedback: Bool = false
 
+    private var elevateViewHierarchy: Bool {
+        guard let interactionAnchor = interactionAnchor else {
+            return false
+        }
+
+        return x == interactionAnchor.x && y == interactionAnchor.y
+    }
+
     init(
         x: Int,
         y: Int,
@@ -147,6 +155,7 @@ struct PieceView: View {
         let position = Minefield.Position(x: x, y: y)
         let location = minefield.location(at: position)
         ZStack {
+            // MARK: Grid & Numbers
             if location.isCleared {
                 Group {
                     RoundedRectangle(cornerRadius: 12)
@@ -168,6 +177,9 @@ struct PieceView: View {
                     animationAnchor = position
                     withAnimation(.spring(duration: 0.24)) {
                         minefield.multiRelease(at: position)
+                        if minefield.isExploded {
+                            explodeAnchor = position
+                        }
                     }
                 }
             }
@@ -188,8 +200,11 @@ struct PieceView: View {
             let isExploded = minefield.isExploded
             let explodeDelay = calculateDelay(x: x, y: y, anchor: explodeAnchor) * 0.8
             // The animation for the explosion.
-            let explodeAnimation: Animation = .spring(duration: 0.28).delay(explodeDelay)
-            let pieceOpacity: Double = isExploded && !location.hasMine ? (colorScheme == .light ? 0.2 : 0.1) : 1
+            let explodeStartStageAnimation: Animation = .spring(duration: 0.2)
+            let explodeFallingStageAnimation: Animation = .spring(response: 0.6, dampingFraction: 0.5)
+            let pieceOpacity: Double = isExploded && !location.hasMine ? (colorScheme == .light ? 0.2 : 0.2) : 1
+
+            // MARK: Uncovered Piece
             GeometryReader { geometry in
                 Color.clear.onAppear {
                     let contentBounds = geometry.frame(in: .global)
@@ -245,50 +260,18 @@ struct PieceView: View {
                     }
 
                     RoundedRectangle(cornerRadius: expandMenu ? (geometry.size.width / 2) : 12)
-                        .phaseAnimator([0, 1], trigger: isExploded) { content, phase in
-                            content
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [
-                                            phase == 1 ? .red : .pieceTopLeading,
-                                            phase == 1 ? .red : .pieceBottomTrailing,
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .scaleEffect(phase == 1 ? 1.15 : 1)
-                        } animation: { phase in
-                            let animation: Animation = if phase == 1 {
-                                .spring(duration: 0.2).delay(explodeDelay)
-                            } else {
-                                .spring(response: 0.6, dampingFraction: 0.5)
-                            }
-                            return animation
-                        }
-                        .phaseAnimator([0, 1], trigger: isExploded) { content, phase in
-                            let distance = distance(x: x, y: y, anchor: explodeAnchor)
-                            let theta = atan2(distance.y, distance.x)
-                            let hypotenuse = -distance.norm * 4
-                            let offset: CGSize = .init(
-                                width: hypotenuse * cos(theta),
-                                height: hypotenuse * sin(theta)
-                            )
-                            content
-                                .offset(phase == 1 ? offset : .zero)
-                        } animation: { phase in
-                            let animation: Animation = if phase == 1 {
-                                .spring(duration: 0.2).delay(explodeDelay / 3)
-                            } else {
-                                .spring(response: 0.6, dampingFraction: 0.5)
-                            }
-                            return animation
-                        }
                         .overlay {
-                            if location.flag == .flag {
-                                Image(systemName: "flag.fill")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(.white)
+                            ZStack {
+                                if isExploded && location.hasMine {
+                                    BombIcon()
+                                        .foregroundStyle(.black.opacity(0.46))
+                                        .padding(10)
+                                }
+                                if location.flag == .flag {
+                                    Image(systemName: "flag.fill")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundStyle(.white)
+                                }
                             }
                         }
                         .scaleEffect(isPressed ? 0.9 : 1)
@@ -302,10 +285,51 @@ struct PieceView: View {
                         )
                 }
             }
+            .phaseAnimator([0, 1], trigger: isExploded) { content, phase in
+                let displayInRed: Bool = (isExploded && location.hasMine)
+                content
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                phase == 1 ? .red : (displayInRed ? .pieceExplodedTopLeading : .pieceTopLeading),
+                                phase == 1 ? .red : (displayInRed ? .pieceExplodedBottomTrailing : .pieceBottomTrailing),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .scaleEffect(phase == 1 ? 1.15 : 1)
+            } animation: { phase in
+                if phase == 1 {
+                    explodeStartStageAnimation.delay(explodeDelay)
+                } else {
+                    explodeFallingStageAnimation
+                }
+            }
+            .phaseAnimator([0, 1], trigger: isExploded) { content, phase in
+                let distance = distance(x: x, y: y, anchor: explodeAnchor)
+                let theta = atan2(distance.y, distance.x)
+                let hypotenuse = -distance.norm * 4
+                let offset: CGSize = .init(
+                    width: hypotenuse * cos(theta),
+                    height: hypotenuse * sin(theta)
+                )
+                content
+                    .offset(phase == 1 ? offset : .zero)
+            } animation: { phase in
+                if phase == 1 {
+                    explodeStartStageAnimation
+                } else {
+                    explodeFallingStageAnimation
+                }
+            }
             .opacity(pieceOpacity)
-            .animation(explodeAnimation, value: isExploded)
+            .animation(
+                explodeFallingStageAnimation.delay(explodeDelay),
+                value: isExploded
+            )
         }
-        .zIndex(elevateViewHierarchy() ? Double(minefield.count) : 0)
+        .zIndex(elevateViewHierarchy ? Double(minefield.count) : 0)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .global)
                 .onChanged { value in
@@ -395,14 +419,6 @@ struct PieceView: View {
 
     private func calculateDelay(x: Int, y: Int, anchor: Minefield.Position?) -> Double {
         distance(x: x, y: y, anchor: anchor).norm * 0.1
-    }
-
-    private func elevateViewHierarchy() -> Bool {
-        guard let interactionAnchor = interactionAnchor else {
-            return false
-        }
-
-        return x == interactionAnchor.x && y == interactionAnchor.y
     }
 
     private struct FlagArc: Shape {
@@ -495,6 +511,120 @@ struct PieceView: View {
     }
 }
 
+// MARK: - Bomb Icon
+
+struct BombIcon: View {
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let length = min(size.width, size.height)
+            let padding = length / 2 * 0.3
+            let radius = length / 2 - padding
+
+            context.drawLayer { ctx in
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                let length = min(size.width, size.height) * 0.9
+                let path = Path { path in
+                    let squareLength = length * 0.4
+                    let topLeft = CGPoint(x: center.x - squareLength / 2, y: center.y - squareLength / 2)
+                    let topRight = CGPoint(x: center.x + squareLength / 2, y: center.y - squareLength / 2)
+                    let bottomRight = CGPoint(x: center.x + squareLength / 2, y: center.y + squareLength / 2)
+                    let bottomLeft = CGPoint(x: center.x - squareLength / 2, y: center.y + squareLength / 2)
+
+                    let top = CGPoint(x: center.x, y: (size.height - length) / 2)
+                    let left = CGPoint(x: (size.width - length) / 2, y: center.y)
+                    let right = CGPoint(x: (size.width + length) / 2, y: center.y)
+                    let bottom = CGPoint(x: center.x, y: (size.height + length) / 2)
+
+                    path.move(to: top)
+                    path.addLine(to: topLeft)
+                    path.addLine(to: left)
+                    path.addLine(to: bottomLeft)
+                    path.addLine(to: bottom)
+                    path.addLine(to: bottomRight)
+                    path.addLine(to: right)
+                    path.addLine(to: topRight)
+                    path.closeSubpath()
+                }
+                ctx.fill(path, with: .foreground)
+            }
+
+            let circlePath = Path { path in
+                path.addArc(
+                    center: center,
+                    radius: radius,
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360),
+                    clockwise: true
+                )
+            }
+
+            var transform = CGAffineTransform.identity
+            transform = transform.translatedBy(x: center.x, y: center.y)
+            transform = transform.rotated(by: .pi / 4)
+            transform = transform.translatedBy(x: -center.x, y: -center.y)
+
+            context.concatenate(transform)
+            context.fill(circlePath, with: .foreground)
+            context.blendMode = .destinationOut
+            context.stroke(circlePath, with: .foreground, lineWidth: 1)
+            context.blendMode = .normal
+
+            let sectorRadius = with {
+                let l = length / 2
+                let delta = 4 * radius * radius - l * l
+                return (1.732 * l - sqrt(delta)) / 2
+            }
+
+            func fillSector(center: CGPoint, angle: CGFloat) {
+                let path = Path { path in
+                    path.move(to: center)
+                    path.addArc(
+                        center: center,
+                        radius: sectorRadius,
+                        startAngle: .degrees(angle - 30),
+                        endAngle: .degrees(angle + 30),
+                        clockwise: false
+                    )
+                    path.closeSubpath()
+                }
+                context.fill(path, with: .foreground)
+                context.blendMode = .destinationOut
+                context.stroke(path, with: .foreground, lineWidth: 1)
+                context.blendMode = .normal
+            }
+            fillSector(center: .init(x: center.x, y: (size.height - length) / 2), angle: 90)
+            fillSector(center: .init(x: center.x, y: (size.height + length) / 2), angle: 270)
+            fillSector(center: .init(x: (size.width - length) / 2, y: center.y), angle: 0)
+            fillSector(center: .init(x: (size.width + length) / 2, y: center.y), angle: 180)
+
+            context.transform = .identity
+
+            let highlightPath = Path { path in
+                path.addArc(
+                    center: center,
+                    radius: radius * 0.84,
+                    startAngle: .degrees(165),
+                    endAngle: .degrees(195),
+                    clockwise: false
+                )
+            }
+            let highlightLineWidth: CGFloat = radius * 0.1
+            context.stroke(
+                highlightPath,
+                with: .color(.white),
+                style: .init(lineWidth: highlightLineWidth, lineCap: .round, lineJoin: .round)
+            )
+        }
+        .rotationEffect(.degrees(60))
+    }
+}
+
+// MARK: - Extensions
+
 extension CGRect {
 
     var top: CGFloat {
@@ -527,13 +657,15 @@ extension CGRect {
 }
 
 extension CGPoint {
-    
+
     var norm: CGFloat {
         sqrt(x * x + y * y)
     }
 }
 
-#Preview {
+// MARK: - Previews
+
+#Preview("Board") {
     BoardView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
@@ -541,4 +673,8 @@ extension CGPoint {
                 .ignoresSafeArea()
         }
         .environmentObject(Minefield(width: 6, height: 10, numberOfMines: 12))
+}
+
+#Preview("Bomb") {
+    BombIcon()
 }

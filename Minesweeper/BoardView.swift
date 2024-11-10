@@ -23,7 +23,7 @@ struct MinefieldLayout: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let cellLength = (bounds.width - spacing * CGFloat(width + 1)) / CGFloat(width)
+        let cellLength = cellLength(for: bounds.size)
 
         for y in 0..<height {
             for x in 0..<width {
@@ -42,9 +42,19 @@ struct MinefieldLayout: Layout {
             }
         }
     }
+    
+    private func cellLength(for size: CGSize) -> CGFloat {
+        let widthSpecified = (size.width - spacing * CGFloat(width + 1)) / CGFloat(width)
+        let heightSpecified = (size.height - spacing * CGFloat(height + 1)) / CGFloat(height)
+        return if size.width / size.height > CGFloat(width) / CGFloat(height) {
+            heightSpecified
+        } else {
+            widthSpecified
+        }
+    }
 
     private func idealSize(for size: CGSize) -> CGSize {
-        let cellLength = (size.width - spacing * CGFloat(width + 1)) / CGFloat(width)
+        let cellLength = cellLength(for: size)
         return CGSize(
             width: cellLength * CGFloat(width) + spacing * CGFloat(width + 1),
             height: cellLength * CGFloat(height) + spacing * CGFloat(height + 1)
@@ -177,6 +187,7 @@ struct PieceView: View {
                             .contentTransition(.numericText())
                     }
                 }
+                .contentShape(Rectangle())
                 .onTapGesture {
                     animationAnchor = position
                     withAnimation(.spring(duration: 0.24)) {

@@ -77,10 +77,11 @@ final class GameViewController: UIViewController {
         difficultyViewController.view.removeFromSuperview()
         difficultyViewController.removeFromParent()
         
-        let boardViewController = UIHostingController(
-            rootView: BoardView()
-                .environmentObject(minefield)
-        )
+//        let boardViewController = UIHostingController(
+//            rootView: BoardView()
+//                .environmentObject(minefield)
+//        )
+        let boardViewController = BoardViewController(minefield: minefield)
         boardViewController.view.backgroundColor = .clear
         addChild(boardViewController)
         view.addSubview(boardViewController.view)

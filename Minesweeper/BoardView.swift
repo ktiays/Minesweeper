@@ -205,13 +205,6 @@ struct PieceView: View {
                 .padding(2)
         }
         .overlay {
-            let neighbours: [Minefield.Position] =
-                if let tappedAnchor = self.tappedAnchor {
-                    minefield.neighbour(of: tappedAnchor)
-                } else {
-                    []
-                }
-
             let isExploded = minefield.isExploded
             let explodeDelay = calculateDelay(x: x, y: y, anchor: explodeAnchor) * 0.8
             // The animation for the explosion.

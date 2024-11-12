@@ -178,10 +178,6 @@ final class BoardViewController: UIViewController {
             }
 
             let isMenuActive = state.isMenuActive
-
-            let pathAnimation = CAAnimation.spring(duration: 0.24)
-            pathAnimation.fillMode = .forwards
-            pathAnimation.isRemovedOnCompletion = false
             
             let padding: CGFloat = 30
             let frame = self.rectInContentBounds(self.frame(at: index).insetBy(dx: -padding, dy: -padding))
@@ -200,27 +196,34 @@ final class BoardViewController: UIViewController {
             }
 
             if !state.isAnimated {
+                let pathAnimation = CAAnimation.spring(duration: 0.24)
+                let blurAnimation = CAAnimation.spring(duration: 0.2)
+                blurAnimation.keyPath = inputRadiusKeyPath
+                
                 doActionForMenu { layer, direction in
                     let beganPath = arcPath(direction: direction, rect: frame, radius: 0)
                     let endPath = arcPath(direction: direction, rect: frame, radius: 30)
                     let highlightedPath = arcPath(direction: direction, rect: frame, radius: 35)
                     
-                    withTransaction {
-                        layer.setValue(isMenuActive ? 0 : 10, forKeyPath: inputRadiusKeyPath)
-                    }
-
                     if isMenuActive {
                         pathAnimation.fromValue = beganPath
                         pathAnimation.toValue = endPath
+                        blurAnimation.fromValue = 10
+                        blurAnimation.toValue = 0
                     } else {
-                        pathAnimation.fromValue = layer.presentation()?.path
+                        let presentation = layer.presentation()
+                        pathAnimation.fromValue = presentation?.path
                         pathAnimation.toValue = beganPath
+                        blurAnimation.fromValue = presentation?.value(forKeyPath: inputRadiusKeyPath)
+                        blurAnimation.toValue = 10
                         addCompletion(for: pathAnimation) {
                             layer.removeFromSuperlayer()
+                            self.pieceLayers[index]?.zPosition = 0
                             self.flagMenus.removeValue(forKey: index)
                         }
                     }
                     layer.add(pathAnimation, forKey: "path")
+                    layer.add(blurAnimation, forKey: "blurFilter")
                 }
                 state.isAnimated = true
             }
@@ -390,7 +393,7 @@ final class BoardViewController: UIViewController {
             }
         case .changed:
             guard let layer = context.layer,
-                let pieceState = context.pieceState
+                  let pieceState = context.pieceState
             else {
                 return
             }
@@ -441,7 +444,7 @@ final class BoardViewController: UIViewController {
             layer.transform = isPressedTransform
         case .cancelled, .ended:
             guard let layer = context.layer,
-                let pieceState = context.pieceState
+                  let pieceState = context.pieceState
             else {
                 return
             }
@@ -453,7 +456,6 @@ final class BoardViewController: UIViewController {
                 pieceState.isAnimated = false
                 pieceState.offset = .zero
                 layer.transform = CATransform3DIdentity
-                layer.zPosition = 0
             } completion: {
                 self.isPositionAnimationEnabled = false
             }
@@ -512,6 +514,8 @@ private func makeSpringAnimationWithSpring(_ spring: Spring) -> CASpringAnimatio
     animation.stiffness = spring.stiffness
     animation.mass = spring.mass
     animation.preferredFrameRateRange = .init(minimum: 80, maximum: 120, preferred: 120)
+    animation.fillMode = .forwards
+    animation.isRemovedOnCompletion = false
     return animation
 }
 
@@ -552,10 +556,9 @@ extension BoardViewController: CALayerDelegate {
 extension BoardViewController: CAAnimationDelegate {
 
     func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
-        guard let id = anim.value(forKey: animationIDKey) as? AnimationID else {
-            return
-        }
-        guard let completion = animationCompletions[id] else {
+        guard let id = anim.value(forKey: animationIDKey) as? AnimationID,
+              let completion = animationCompletions[id]
+        else {
             return
         }
 

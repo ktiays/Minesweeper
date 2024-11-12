@@ -24,7 +24,7 @@ final class ImageCache {
     ]
 
     private(set) lazy var unrevealed: CGImage = renderContent {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        Rectangle()
             .foregroundStyle(
                 LinearGradient(
                     colors: [

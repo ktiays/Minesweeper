@@ -38,6 +38,13 @@ extension CGRect {
     }
 }
 
+extension CALayer {
+    
+    func insertToFront(_ sublayer: CALayer) {
+        insertSublayer(sublayer, at: UInt32(sublayers?.count ?? 0))
+    }
+}
+
 fileprivate let animationIDKey = "AnimationID"
 fileprivate let inputRadiusKeyPath = "filters.gaussianBlur.inputRadius"
 
@@ -216,9 +223,11 @@ final class BoardViewController: UIViewController {
                         pathAnimation.toValue = beganPath
                         blurAnimation.fromValue = presentation?.value(forKeyPath: inputRadiusKeyPath)
                         blurAnimation.toValue = 10
-                        addCompletion(for: pathAnimation) {
+                        addCompletion(for: pathAnimation) { [self] in
                             layer.removeFromSuperlayer()
-                            self.pieceLayers[index]?.zPosition = 0
+                            if let pieceLayer = self.pieceLayers[index] {
+                                self.view.layer.insertSublayer(pieceLayer, at: 0)
+                            }
                             self.flagMenus.removeValue(forKey: index)
                         }
                     }
@@ -421,13 +430,14 @@ final class BoardViewController: UIViewController {
                             blurFilter.inputRadius = 10
                             shapeLayer.filters = [blurFilter.effect]
                         }
-                        view.layer.addSublayer(shapeLayer)
+                        view.layer.insertToFront(shapeLayer)
                         return shapeLayer
                     }
 
-                    layer.zPosition = CGFloat(minefield.count) * 2
+                    let zIndex = CGFloat(minefield.count) * 2
                     let topLayer = makeMenuLayer()
                     let bottomLayer = makeMenuLayer()
+                    view.layer.insertToFront(layer)
                     flagMenus[index] = (topLayer, bottomLayer)
                 }
             }

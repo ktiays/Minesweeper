@@ -36,6 +36,10 @@ final class ImageCache {
                 )
             )
     }
+    
+    private(set) lazy var boom: CGImage = renderContent {
+        BombIcon()
+    }
 
     init(colorScheme: ColorScheme) {
         self.colorScheme = colorScheme

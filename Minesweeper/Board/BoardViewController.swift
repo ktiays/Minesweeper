@@ -5,9 +5,14 @@
 
 import SwiftUI
 import UIKit
+import SnapKit
 
 func - (_ lhs: CGPoint, _ rhs: CGPoint) -> CGPoint {
     .init(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
+}
+
+func * (_ lhs: CGPoint, _ rhs: CGFloat) -> CGPoint {
+    .init(x: lhs.x * rhs, y: lhs.y * rhs)
 }
 
 func withTransaction(@_implicitSelfCapture _ body: () -> Void, completion: @escaping () -> Void = {}) {
@@ -25,6 +30,10 @@ extension CGPoint {
 }
 
 extension CGRect {
+    
+    var center: CGPoint {
+        .init(x: midX, y: midY)
+    }
 
     func scaleBy(_ scale: CGFloat) -> CGRect {
         let newWidth = size.width * scale
@@ -60,6 +69,7 @@ final class BoardViewController: UIViewController {
         var isMenuActive: Bool = false
         var offset: CGPoint = .zero
         var isAnimated: Bool = false
+        var isCleared: Bool = false
     }
 
     private enum ArcDirection {
@@ -81,6 +91,8 @@ final class BoardViewController: UIViewController {
     private var flagMenus: [Int: (CAShapeLayer, CAShapeLayer)] = [:]
     private var menuArcPaths: [CALayer: CGPath] = [:]
     private var isPositionAnimationEnabled: Bool = false
+    private var isExplodedAnimating: Bool = false
+    private var isGameOver: Bool = false
 
     private typealias AnimationID = UInt64
 
@@ -88,6 +100,7 @@ final class BoardViewController: UIViewController {
 
     private var layoutCache: LayoutCache = .init()
     private lazy var isPressedTransform: CATransform3D = CATransform3DMakeScale(0.9, 0.9, 1)
+    private lazy var feedback: UIImpactFeedbackGenerator = .init(style: .rigid)
 
     @Incrementable
     private var animationID: AnimationID = 0
@@ -103,6 +116,7 @@ final class BoardViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        feedback.prepare()
 
         for i in 0..<minefield.count {
             let layer = CALayer()
@@ -113,8 +127,15 @@ final class BoardViewController: UIViewController {
             view.layer.addSublayer(layer)
             pieceLayers[i] = layer
         }
-
-        minefield.clearMine(at: .init(x: 0, y: 0))
+    }
+    
+    private func forEachField(_ body: (Int, Int, Int) -> Void) {
+        for y in 0..<minefield.height {
+            for x in 0..<minefield.width {
+                let index = y * minefield.width + x
+                body(x, y, index)
+            }
+        }
     }
 
     private func updateLayoutCache() {
@@ -146,35 +167,41 @@ final class BoardViewController: UIViewController {
             height: rect.height
         )
     }
+    
+    // MARK: - Layout
 
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
 
         updateLayoutCache()
 
-        let width = minefield.width
-        let height = minefield.height
         let length = layoutCache.cellLength
         let radius = length * 0.2
 
-        for y in 0..<height {
-            for x in 0..<width {
-                let index = y * width + x
+        forEachField { x, y, index in
+            let pieceState = pieceStates[index]
+            let isMenuActive = pieceState?.isMenuActive ?? false
+            let offset = pieceState?.offset ?? .zero
+            let isCleared = pieceState?.isCleared ?? false
+            let imageCache = ImageManager.shared.cache
+            
+            let frame = self.frame(at: .init(x: x, y: y))
+            let cellFrame = self.rectInContentBounds(frame)
+            
+            if isCleared {
+                let location = minefield.locationAt(x: x, y: y)
+                let layer = gridLayers[index]!
+                layer.contents = imageCache.grid(for: location.numberOfMinesAround)
+                layer.frame = cellFrame
+            } else {
                 let layer = pieceLayers[index]!
-                let frame = self.frame(at: .init(x: x, y: y))
-
-                let pieceState = pieceStates[index]
-                let isMenuActive = pieceState?.isMenuActive ?? false
-                let offset = pieceState?.offset ?? .zero
-
+                
                 // Reset the transform to get the correct frame.
                 let transform = layer.transform
                 layer.transform = CATransform3DIdentity
-                layer.frame = self.rectInContentBounds(frame).offsetBy(dx: offset.x, dy: offset.y)
+                layer.frame = cellFrame.offsetBy(dx: offset.x, dy: offset.y)
                 layer.cornerRadius = isMenuActive ? (length / 2) : radius
                 layer.transform = transform
-
-                let imageCache = ImageManager.shared.cache
                 layer.contents = imageCache.unrevealed
             }
         }
@@ -281,8 +308,18 @@ final class BoardViewController: UIViewController {
         pieceStates[index] = state
         return state
     }
+    
+    private func activeLayer(at position: Minefield.Position) -> CALayer {
+        let state = state(at: position)
+        let index = position.y * minefield.width + position.x
+        return if state.isCleared {
+            gridLayers[index]!
+        } else {
+            pieceLayers[index]!
+        }
+    }
 
-    // MARK: Touch Handling
+    // MARK: - Touch Handling
 
     private final class DragState {
 
@@ -327,6 +364,9 @@ final class BoardViewController: UIViewController {
     private var dragStates: [UITouch: DragState] = [:]
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if isExplodedAnimating {
+            return
+        }
         for touch in touches {
             let state = DragState(touch: touch)
             dragStates[touch] = state
@@ -365,6 +405,8 @@ final class BoardViewController: UIViewController {
             dragGestureDidChange(state)
         }
     }
+    
+    // MARK: Drag
 
     private func dragGestureDidChange(_ state: DragState) {
         func convertPointToContent(_ point: CGPoint) -> CGPoint {
@@ -434,7 +476,6 @@ final class BoardViewController: UIViewController {
                         return shapeLayer
                     }
 
-                    let zIndex = CGFloat(minefield.count) * 2
                     let topLayer = makeMenuLayer()
                     let bottomLayer = makeMenuLayer()
                     view.layer.insertToFront(layer)
@@ -454,11 +495,12 @@ final class BoardViewController: UIViewController {
             layer.transform = isPressedTransform
         case .cancelled, .ended:
             guard let layer = context.layer,
-                  let pieceState = context.pieceState
+                  let pieceState = context.pieceState,
+                  let position = context.position
             else {
                 return
             }
-
+            
             isPositionAnimationEnabled = true
             withTransaction {
                 pieceState.isPressed = false
@@ -468,6 +510,11 @@ final class BoardViewController: UIViewController {
                 layer.transform = CATransform3DIdentity
             } completion: {
                 self.isPositionAnimationEnabled = false
+            }
+            
+            let length = layoutCache.cellLength
+            if state.translation.length < length && !pieceState.isMenuActive {
+                handlePieceTap(layer: layer, at: position)
             }
         default:
             break
@@ -514,8 +561,157 @@ final class BoardViewController: UIViewController {
         animation.setValue(id, forKey: animationIDKey)
         animationCompletions[id] = completion
     }
-}
+    
+    // MARK: Tap
+    
+    private func handlePieceTap(layer: CALayer, at position: Minefield.Position) {
+        if isGameOver { return }
+        
+        let location = minefield.location(at: position)
+        if location.isCleared {
+            if location.numberOfMinesAround > 0 {
+                minefield.multiRelease(at: position)
+            }
+            return
+        } else {
+            minefield.clearMine(at: position)
+        }
+        
+        if minefield.isExploded {
+            explode(at: position)
+            isGameOver = true
+            return
+        }
+        
+        if minefield.isCompleted {
+            congratulations()
+            isGameOver = true
+            return
+        }
+        
+        updateMinesWithAnimation(anchor: position)
+    }
+    
+    private func updateMinesWithAnimation(anchor: Minefield.Position) {
+        let anchorFrame = frame(at: anchor)
+        forEachField { x, y, index in
+            let position = Minefield.Position(x: x, y: y)
+            let pieceState = state(at: position)
+            
+            let location = minefield.location(at: position)
+            if !pieceState.isCleared && location.isCleared {
+                guard let layer = pieceLayers[index] else {
+                    assertionFailure()
+                    return
+                }
+                
+                let frame = frame(at: position)
+                let distance = (frame.center - anchorFrame.center).length
+                
+                let presentation = layer.presentation()
+                
+                let opacityAnimation = CAAnimation.spring(dampingRatio: 0.7)
+                opacityAnimation.keyPath = "opacity"
+                opacityAnimation.fromValue = presentation?.opacity
+                opacityAnimation.toValue = 0
+                
+                let scaleAnimation = CAAnimation.spring(dampingRatio: 0.7)
+                scaleAnimation.keyPath = "transform"
+                scaleAnimation.fromValue = presentation?.transform
+                scaleAnimation.toValue = CATransform3DMakeScale(0, 0, 1)
+                
+                let animation = CAAnimationGroup()
+                animation.animations = [opacityAnimation, scaleAnimation]
+                animation.isRemovedOnCompletion = false
+                animation.fillMode = .forwards
+                animation.beginTime = CACurrentMediaTime() + Double(distance) * 0.002
+                
+                addCompletion(for: animation) {
+                    layer.removeFromSuperlayer()
+                    self.pieceLayers.removeValue(forKey: index)
+                }
+                layer.add(animation, forKey: nil)
+                
+                let gridLayer = CALayer()
+                view.layer.insertSublayer(gridLayer, below: layer)
+                gridLayers[index] = gridLayer
+                
+                pieceState.isCleared = true
+            }
+        }
+    }
+    
+    private func congratulations() {
+        let confetti = ConfettiViewController()
+        guard let window = view.window else {
+            assertionFailure()
+            return
+        }
 
+        feedback.impactOccurred()
+        feedback.prepare()
+
+        window.addSubview(confetti.view)
+        confetti.view.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            confetti.view.removeFromSuperview()
+        }
+    }
+    
+    private func explode(at anchor: Minefield.Position) {
+        let anchorFrame = frame(at: anchor)
+        forEachField { x, y, index in
+            let position = Minefield.Position(x: x, y: y)
+            let pieceState = state(at: position)
+            if pieceState.isCleared {
+                return
+            }
+            
+            let layer = activeLayer(at: position)
+            let location = minefield.location(at: position)
+            let frame = self.frame(at: position)
+            let distance = frame.center - anchorFrame.center
+            let norm = distance.length
+            
+            let animationBeginTime = CACurrentMediaTime() + Double(norm) * 0.0014
+            
+            layer.removeAllAnimations()
+            
+            let theta = atan2(distance.y, distance.x)
+            let hypotenuse = norm * 0.04
+            let offset: CGPoint = .init(
+                x: hypotenuse * cos(theta),
+                y: hypotenuse * sin(theta)
+            )
+            
+            let enlargeAnimation = CAAnimation.spring(dampingRatio: 0.2)
+            enlargeAnimation.keyPath = "transform"
+            enlargeAnimation.fromValue = layer.presentation()?.transform
+            enlargeAnimation.toValue = CATransform3DConcat(
+                CATransform3DMakeScale(1.15, 1.15, 1),
+                CATransform3DMakeTranslation(offset.x, offset.y, 0)
+            )
+            enlargeAnimation.beginTime = animationBeginTime
+            addCompletion(for: enlargeAnimation) {
+                let restoreAnimation = CAAnimation.spring(response: 0.5, dampingRatio: 0.48)
+                restoreAnimation.keyPath = "transform"
+                restoreAnimation.fromValue = layer.presentation()?.transform
+                restoreAnimation.toValue = CATransform3DIdentity
+                restoreAnimation.duration = restoreAnimation.value(forKey: "settlingDuration") as! TimeInterval
+                self.addCompletion(for: restoreAnimation) {
+                    self.isExplodedAnimating = false
+                }
+                layer.add(restoreAnimation, forKey: nil)
+            }
+            layer.add(enlargeAnimation, forKey: nil)
+            isExplodedAnimating = true
+        }
+    }
+}
+ 
 // MARK: - CALayerDelegate
 
 private func makeSpringAnimationWithSpring(_ spring: Spring) -> CASpringAnimation {
@@ -526,6 +722,7 @@ private func makeSpringAnimationWithSpring(_ spring: Spring) -> CASpringAnimatio
     animation.preferredFrameRateRange = .init(minimum: 80, maximum: 120, preferred: 120)
     animation.fillMode = .forwards
     animation.isRemovedOnCompletion = false
+    animation.setValue(spring.settlingDuration, forKey: "settlingDuration")
     return animation
 }
 
@@ -540,13 +737,18 @@ extension CAAnimation {
         let spring = Spring(mass: mass, stiffness: stiffness, damping: damping)
         return makeSpringAnimationWithSpring(spring)
     }
+    
+    static func spring(response: Double = 0.5, dampingRatio: Double = 0.825) -> CASpringAnimation {
+        let spring = Spring(response: response, dampingRatio: dampingRatio)
+        return makeSpringAnimationWithSpring(spring)
+    }
 }
 
 extension BoardViewController: CALayerDelegate {
 
     func action(for layer: CALayer, forKey event: String) -> (any CAAction)? {
         switch event {
-        case "transform":
+        case "transform", "opacity":
             return CAAnimation.spring(duration: 0.24)
         case "cornerRadius", inputRadiusKeyPath:
             return CAAnimation.spring(duration: 0.2)

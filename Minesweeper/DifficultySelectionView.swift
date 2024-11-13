@@ -91,7 +91,7 @@ fileprivate struct DifficultyView: View {
                     .foregroundStyle(.white)
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScaledButtonStyle(scale: 0.92))
     }
 }
 

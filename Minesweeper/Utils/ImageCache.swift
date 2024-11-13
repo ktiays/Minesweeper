@@ -36,9 +36,29 @@ final class ImageCache {
                 )
             )
     }
+    private(set) lazy var exploded: CGImage = renderContent {
+        Rectangle()
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [
+                        .pieceExplodedTopLeading,
+                        .pieceExplodedBottomTrailing,
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+    }
+    private(set) lazy var empty: CGImage = {
+        UIGraphicsBeginImageContext(.init(width: 1, height: 1))
+        let image = UIGraphicsGetImageFromCurrentImageContext()!.cgImage!
+        UIGraphicsEndImageContext()
+        return image
+    }()
     
     private(set) lazy var boom: CGImage = renderContent {
         BombIcon()
+            .foregroundStyle(.black.opacity(0.46))
     }
 
     init(colorScheme: ColorScheme) {

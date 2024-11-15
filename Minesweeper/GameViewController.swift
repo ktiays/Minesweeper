@@ -7,6 +7,7 @@ import Combine
 import SnapKit
 import SwiftUI
 import UIKit
+import SwiftSignal
 
 final class GameViewController: UIViewController {
 
@@ -24,6 +25,9 @@ final class GameViewController: UIViewController {
         difficultyViewController.view.backgroundColor = .clear
         return difficultyViewController
     }()
+    
+    @Signal
+    private var isGameRunning: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,6 +81,19 @@ final class GameViewController: UIViewController {
         difficultyViewController.view.removeFromSuperview()
         difficultyViewController.removeFromParent()
         
+        let gameStatusBar = BuilderHostingView { [unowned self] in
+            HStack {
+                TimeView(isPaused: !isGameRunning)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 5)
+        }
+        view.addSubview(gameStatusBar)
+        gameStatusBar.snp.makeConstraints { make in
+            make.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
+        }
+        
 //        let boardViewController = UIHostingController(
 //            rootView: BoardView()
 //                .environmentObject(minefield)
@@ -84,12 +101,26 @@ final class GameViewController: UIViewController {
         let boardViewController = BoardViewController(minefield: minefield)
         boardViewController.view.backgroundColor = .clear
         addChild(boardViewController)
-        view.addSubview(boardViewController.view)
+        view.insertSubview(boardViewController.view, belowSubview: gameStatusBar)
         boardViewController.didMove(toParent: self)
-
         boardViewController.view.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            let padding: CGFloat = 6
+            make.top.equalTo(gameStatusBar.snp.bottom)
+                .offset(padding)
+            make.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
+                .inset(UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding))
         }
+        boardViewController.$gameStatus.sink { [weak self] status in
+            switch status {
+            case .playing:
+                self?.isGameRunning = true
+            case .win, .lose:
+                self?.isGameRunning = false
+            default:
+                break
+            }
+        }
+        .store(in: &cancellables)
     }
     
     private func configureMinefield(difficulty: DifficultyItem) {

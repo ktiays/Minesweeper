@@ -6,6 +6,7 @@
 import SnapKit
 import SwiftUI
 import UIKit
+import Combine
 
 public let null = NSNull()
 
@@ -25,7 +26,14 @@ extension CALayer {
 
 private let animationIDKey = "AnimationID"
 
-final class BoardViewController: UIViewController {
+final class BoardViewController: UIViewController, ObservableObject {
+    
+    public enum GameStatus {
+        case idle
+        case playing
+        case win
+        case lose
+    }
 
     private struct LayoutCache {
         var cellLength: CGFloat = 0
@@ -70,6 +78,9 @@ final class BoardViewController: UIViewController {
             view.setNeedsLayout()
         }
     }
+    
+    @Published
+    private(set) var gameStatus: GameStatus = .idle
 
     #if targetEnvironment(macCatalyst)
     private let isSupportedDragInteraction: Bool = false
@@ -604,27 +615,37 @@ final class BoardViewController: UIViewController {
         if isGameOver { return }
 
         let location = minefield.location(at: position)
+        var needsUpdate = false
         if location.isCleared {
             if location.numberOfMinesAround > 0 {
                 minefield.multiRelease(at: position)
+                needsUpdate = true
             }
         } else {
             minefield.clearMine(at: position)
+            needsUpdate = true
+            
+            if gameStatus == .idle {
+                gameStatus = .playing
+            }
         }
+        if !needsUpdate { return }
+        
+        updateMinesWithAnimation(anchor: position)
 
         if minefield.isExploded {
             explode(at: position)
             isGameOver = true
+            gameStatus = .lose
             return
         }
 
         if minefield.isCompleted {
             congratulations()
             isGameOver = true
+            gameStatus = .win
             return
         }
-
-        updateMinesWithAnimation(anchor: position)
     }
 
     private func updateMinesWithAnimation(anchor: Minefield.Position) {

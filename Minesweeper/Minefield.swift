@@ -31,7 +31,7 @@ public final class Minefield: ObservableObject {
         public var numberOfMinesAround: Int = 0
     }
 
-    public enum Flag: CustomStringConvertible {
+    public enum Flag: CustomStringConvertible, CaseIterable {
         case none
         case flag
         case maybe
@@ -44,6 +44,17 @@ public final class Minefield: ObservableObject {
                 "Flag"
             case .maybe:
                 "Maybe"
+            }
+        }
+
+        public func next() -> Flag {
+            switch self {
+            case .none:
+                .flag
+            case .flag:
+                .maybe
+            case .maybe:
+                .none
             }
         }
     }
@@ -95,6 +106,13 @@ public final class Minefield: ObservableObject {
         locationAt(x: position.x, y: position.y)
     }
     
+    public func withMutableLocation(at position: Position, _ body: (inout Location) -> Void) {
+        let index = position.y * width + position.x
+        var location = locations[index]
+        body(&location)
+        locations[index] = location
+    }
+
     public func changeFlag(to flag: Flag, at position: Position) {
         let location = location(at: position)
         if location.isCleared || location.flag == flag {
@@ -130,9 +148,9 @@ public final class Minefield: ObservableObject {
 
     public func placeMine(avoiding position: Position) {
         let now = CACurrentMediaTime()
-        
+
         let neighbours = self.neighbour(of: position)
-        
+
         var mines: [Bool] = Array(repeating: true, count: numberOfMines)
         mines.append(contentsOf: Array(repeating: false, count: width * height - numberOfMines - neighbours.count - 1))
         mines.shuffle()
@@ -143,7 +161,7 @@ public final class Minefield: ObservableObject {
         for i in avoidings {
             mines.insert(false, at: i)
         }
-        
+
         var locations = self.locations
         for (index, hasMine) in mines.enumerated() {
             locations[index].hasMine = hasMine
@@ -220,7 +238,7 @@ public final class Minefield: ObservableObject {
             isExploded = true
             return
         }
-        
+
         var locations = self.locations
         clearMinesRecursively(at: position, in: &locations)
 

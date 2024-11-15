@@ -84,7 +84,7 @@ fileprivate struct DifficultyView: View {
                         Text(item.title)
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                         if item.id != .custom {
-                            Text("\(item.width) × \(item.height)")
+                            Text(verbatim: "\(item.width) × \(item.height)")
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                         }
                     }

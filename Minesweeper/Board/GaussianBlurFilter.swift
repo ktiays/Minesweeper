@@ -7,6 +7,8 @@ import Foundation
 
 struct GaussianBlurFilter {
     
+    static let inputRadiusKeyPath = "filters.gaussianBlur.inputRadius"
+    
     let effect: NSObject
 
     var inputRadius: Double {

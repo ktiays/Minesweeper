@@ -7,48 +7,13 @@ import SnapKit
 import SwiftUI
 import UIKit
 
-func - (_ lhs: CGPoint, _ rhs: CGPoint) -> CGPoint {
-    .init(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
-}
+public let null = NSNull()
 
-func * (_ lhs: CGPoint, _ rhs: CGFloat) -> CGPoint {
-    .init(x: lhs.x * rhs, y: lhs.y * rhs)
-}
-
-func withTransaction(@_implicitSelfCapture _ body: () -> Void, completion: @escaping () -> Void = {}) {
+public func withTransaction(@_implicitSelfCapture _ body: () -> Void, completion: @escaping () -> Void = {}) {
     CATransaction.begin()
     CATransaction.setCompletionBlock(completion)
     body()
     CATransaction.commit()
-}
-
-extension CGPoint {
-
-    var length: CGFloat {
-        sqrt(x * x + y * y)
-    }
-}
-
-extension CGRect {
-
-    var center: CGPoint {
-        .init(x: midX, y: midY)
-    }
-
-    var diagonal: CGFloat {
-        sqrt(width * width + height * height)
-    }
-
-    func scaleBy(_ scale: CGFloat) -> CGRect {
-        let newWidth = size.width * scale
-        let newHeight = size.height * scale
-        return .init(
-            x: origin.x + (size.width - newWidth) / 2,
-            y: origin.y + (size.height - newHeight) / 2,
-            width: newWidth,
-            height: newHeight
-        )
-    }
 }
 
 extension CALayer {
@@ -59,7 +24,6 @@ extension CALayer {
 }
 
 private let animationIDKey = "AnimationID"
-private let inputRadiusKeyPath = "filters.gaussianBlur.inputRadius"
 
 final class BoardViewController: UIViewController {
 
@@ -81,9 +45,16 @@ final class BoardViewController: UIViewController {
 
         private let imageCache = ImageManager.shared.cache
 
-        lazy var boomLayer: CALayer = {
+        private(set) lazy var bombLayer: CALayer = {
             let layer = CALayer()
+            layer.allowsEdgeAntialiasing = true
             layer.contents = imageCache.boom
+            return layer
+        }()
+
+        private(set) lazy var flagContainerLayer: FlagContainerLayer = {
+            let layer = FlagContainerLayer()
+            layer.allowsEdgeAntialiasing = true
             return layer
         }()
     }
@@ -99,6 +70,12 @@ final class BoardViewController: UIViewController {
             view.setNeedsLayout()
         }
     }
+
+    #if targetEnvironment(macCatalyst)
+    private let isSupportedDragInteraction: Bool = false
+    #else
+    private let isSupportedDragInteraction: Bool = true
+    #endif
 
     private var pieceLayers: [Int: CALayer] = [:]
     private var gridLayers: [Int: CALayer] = [:]
@@ -231,9 +208,11 @@ final class BoardViewController: UIViewController {
                 }
 
                 if let overlay = overlayLayers[index] {
+                    let sublayerFrame = CGRect(origin: .zero, size: frame.size)
                     if minefield.isExploded && location.hasMine {
-                        overlay.boomLayer.frame = .init(origin: .zero, size: frame.size).insetBy(dx: 6, dy: 6)
+                        overlay.bombLayer.frame = sublayerFrame.scaleBy(0.7)
                     }
+                    overlay.flagContainerLayer.frame = sublayerFrame
                 }
             }
         }
@@ -280,7 +259,7 @@ final class BoardViewController: UIViewController {
                         )
                         blurAnimation = layer.customKeyPathAnimation(
                             blurCurve,
-                            keyPath: inputRadiusKeyPath,
+                            keyPath: GaussianBlurFilter.inputRadiusKeyPath,
                             from: .constant(10),
                             to: 0
                         )
@@ -292,7 +271,7 @@ final class BoardViewController: UIViewController {
                         )
                         blurAnimation = layer.customKeyPathAnimation(
                             blurCurve,
-                            keyPath: inputRadiusKeyPath,
+                            keyPath: GaussianBlurFilter.inputRadiusKeyPath,
                             from: .current,
                             to: 10
                         )
@@ -629,7 +608,6 @@ final class BoardViewController: UIViewController {
             if location.numberOfMinesAround > 0 {
                 minefield.multiRelease(at: position)
             }
-            return
         } else {
             minefield.clearMine(at: position)
         }
@@ -684,6 +662,7 @@ final class BoardViewController: UIViewController {
             layer.add(animation, forKey: nil)
 
             let gridLayer = CALayer()
+            gridLayer.allowsEdgeAntialiasing = true
             view.layer.insertSublayer(gridLayer, below: layer)
             gridLayers[index] = gridLayer
         }
@@ -730,14 +709,14 @@ final class BoardViewController: UIViewController {
             let distance = frame.center - anchorFrame.center
             let norm = distance.length / contentDiagonal
 
-            let animationBeginTime = CACurrentMediaTime() + Double(norm) * 2.1
+            let animationBeginTime = CACurrentMediaTime() + Double(norm) * 1.9
             let offset: CGPoint = distance * 0.05
             let imageCache = ImageManager.shared.cache
 
             layer.removeAllAnimations()
-            
+
             let previousPhaseCurve = Spring(response: 0.5, dampingRatio: 0.2)
-            
+
             let enlargeAnimation = layer.transformAnimation(
                 previousPhaseCurve,
                 from: .current,
@@ -751,17 +730,52 @@ final class BoardViewController: UIViewController {
 
             if hasMine {
                 let overlay = overlayLayer(at: index)
-                let boomLayer = overlay.boomLayer
-                boomLayer.opacity = 0
-                layer.addSublayer(boomLayer)
+                let bombLayer = overlay.bombLayer
+                bombLayer.opacity = 0
+                layer.addSublayer(bombLayer)
 
                 let opacityAnimation = layer.opacityAnimation(
                     .init(duration: 0.2),
                     from: .constant(0),
                     to: 1
                 )
-                opacityAnimation.beginTime = animationBeginTime
-                boomLayer.add(opacityAnimation, forKey: nil)
+                var bombAnimations: [CAAnimation] = [opacityAnimation]
+
+                if location.flag != .none {
+                    let transformAnimation = bombLayer.transformAnimation(
+                        .init(duration: 0.3),
+                        from: .current,
+                        to: CATransform3DConcat(
+                            CATransform3DMakeScale(0.9, 0.9, 1),
+                            CATransform3DMakeTranslation(
+                                -0.06 * frame.width,
+                                 0.06 * frame.height,
+                                0
+                            )
+                        )
+                    )
+                    bombAnimations.append(transformAnimation)
+                    
+                    let flagLayer = overlay.flagContainerLayer
+                    let flagAnimation = flagLayer.transformAnimation(
+                        .init(duration: 0.3),
+                        from: .current,
+                        to: CATransform3DConcat(
+                            CATransform3DMakeScale(0.7, 0.7, 1),
+                            CATransform3DMakeTranslation(
+                                0.27 * frame.width,
+                                -0.27 * frame.height,
+                                0
+                            )
+                        )
+                    )
+                    flagAnimation.beginTime = animationBeginTime
+                    flagLayer.add(flagAnimation, forKey: nil)
+                }
+
+                let bombAnimation = bombLayer.groupAnimation(with: bombAnimations)
+                bombAnimation.beginTime = animationBeginTime
+                bombLayer.add(bombAnimation, forKey: nil)
 
                 let contentsAnimation = layer.contentsAnimation(
                     previousPhaseCurve,
@@ -836,11 +850,18 @@ final class BoardViewController: UIViewController {
                 return
             }
 
-            guard let position = position(at: location) else {
+            guard let position = position(at: beganLocation) else {
                 return
             }
+            changeFlag(at: position)
+        default:
+            break
+        }
+    }
 
-            if minefield.location(at: position).isCleared {
+    private func changeFlag(_ flag: Minefield.Flag? = nil, at position: Minefield.Position) {
+        minefield.withMutableLocation(at: position) { location in
+            if location.isCleared {
                 return
             }
 
@@ -848,13 +869,23 @@ final class BoardViewController: UIViewController {
             guard let layer = pieceLayers[index] else {
                 return
             }
-        default:
-            break
+
+            let flagLayer = overlayLayer(at: index).flagContainerLayer
+            if flagLayer.superlayer == nil {
+                layer.addSublayer(flagLayer)
+                view.setNeedsLayout()
+                view.layoutIfNeeded()
+            }
+
+            if let flag {
+                location.flag = flag
+                flagLayer.changeFlag(to: flag)
+            } else {
+                let next = location.flag.next()
+                location.flag = next
+                flagLayer.changeFlag(to: next)
+            }
         }
-    }
-
-    private func changeFlag(_ flag: Minefield.Flag, at position: Minefield.Position) {
-
     }
 }
 
@@ -866,7 +897,7 @@ extension BoardViewController: CALayerDelegate {
         switch event {
         case "transform", "opacity":
             return springAnimation(.init(duration: 0.24))
-        case "cornerRadius", inputRadiusKeyPath:
+        case "cornerRadius", GaussianBlurFilter.inputRadiusKeyPath:
             return springAnimation(.init(duration: 0.2))
         case "position":
             if isPositionAnimationEnabled {
@@ -874,7 +905,7 @@ extension BoardViewController: CALayerDelegate {
             }
             fallthrough
         default:
-            return NSNull()
+            return null
         }
     }
 }

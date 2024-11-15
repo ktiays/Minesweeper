@@ -60,6 +60,20 @@ final class ImageCache {
         BombIcon()
             .foregroundStyle(.black.opacity(0.46))
     }
+    
+    private(set) lazy var flag: CGImage = renderContent {
+        Image(systemName: "flag.fill")
+            .font(.system(size: 32, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 60, height: 60)
+    }
+    
+    private(set) lazy var maybe: CGImage = renderContent {
+        Text(verbatim: "?")
+            .font(.system(size: 40, weight: .heavy, design: .rounded))
+            .foregroundStyle(.white)
+            .frame(width: 60, height: 60)
+    }
 
     init(colorScheme: ColorScheme) {
         self.colorScheme = colorScheme
@@ -80,7 +94,7 @@ final class ImageCache {
                     .shadow(color: .white.opacity(colorScheme == .dark ? 0.4 : 1), radius: 3, x: -2, y: -2)
 
                 if count > 0 {
-                    Text("\(count)")
+                    Text(verbatim: "\(count)")
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(Self.textColorMap[count, default: .primary])
                 }

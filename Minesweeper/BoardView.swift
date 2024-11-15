@@ -181,7 +181,7 @@ struct PieceView: View {
 
                     let count = location.numberOfMinesAround
                     if count > 0 {
-                        Text("\(count)")
+                        Text(verbatim: "\(count)")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(numberTextColor(for: count))
                             .contentTransition(.numericText())

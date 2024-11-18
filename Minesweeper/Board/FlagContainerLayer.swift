@@ -19,22 +19,7 @@ final class FlagContainerLayer: CALayer {
         case bottom
     }
 
-    private struct AnimationState {
-        var velocity: AnimatedProperties
-        var value: AnimatedProperties
-        let target: AnimatedProperties
-
-        var isComplete: Bool {
-            let threshold: Double = 0.01
-            let result = target - value
-            return abs(result.opacity) < threshold
-                && abs(result.blurRadius) < threshold
-                && abs(result.scale) < threshold
-                && abs(result.translation) < threshold
-        }
-    }
-
-    private struct AnimatedProperties: VectorArithmetic {
+    private struct AnimatedProperties: VectorArithmetic, ApproximateEquatable {
         var opacity: Double
         var blurRadius: Double
         var scale: Double
@@ -60,6 +45,13 @@ final class FlagContainerLayer: CALayer {
                 scale: lhs.scale + rhs.scale,
                 translation: lhs.translation + rhs.translation
             )
+        }
+
+        static func isApproximatelyEqual(_ lhs: Self, _ rhs: Self) -> Bool {
+            Double.isApproximatelyEqual(lhs.opacity, rhs.opacity)
+                && Double.isApproximatelyEqual(lhs.blurRadius, rhs.blurRadius)
+                && Double.isApproximatelyEqual(lhs.scale, rhs.scale)
+                && Double.isApproximatelyEqual(lhs.translation, rhs.translation)
         }
 
         mutating func scale(by rhs: Double) {
@@ -96,7 +88,7 @@ final class FlagContainerLayer: CALayer {
     private var isAnimating: Bool = false
     private var appearingLayer: CALayer?
     private var disappearingLayer: CALayer?
-    private var animationStates: [CALayer: AnimationState] = [:]
+    private var animationStates: [CALayer: AnimationState<AnimatedProperties>] = [:]
     private var layerProperties: [CALayer: AnimatedProperties] = .init()
 
     private var animationOffset: CGFloat {
@@ -152,7 +144,7 @@ final class FlagContainerLayer: CALayer {
                 self?.handleVsync($0)
             }
         }
-        
+
         let appearOffset: CGFloat = (animation == .top ? -0.2 : 0.2)
         let disappearOffset: CGFloat = (animation == .top ? 0.1 : -0.1)
 
@@ -198,8 +190,8 @@ final class FlagContainerLayer: CALayer {
             let velocity = animationStates[currentLayer]?.velocity ?? .zero
             let properties = properties(for: currentLayer, orInsert: targetProperties)
             let state = AnimationState(
-                velocity: velocity,
                 value: properties,
+                velocity: velocity,
                 target: prepareDisappearProperties
             )
             animationStates[currentLayer] = state
@@ -209,8 +201,8 @@ final class FlagContainerLayer: CALayer {
             appearingLayer = targetLayer
             let velocity = animationStates[targetLayer]?.velocity ?? .zero
             let state = AnimationState(
-                velocity: velocity,
                 value: prepareAppearProperties,
+                velocity: velocity,
                 target: targetProperties
             )
             animationStates[targetLayer] = state
@@ -267,7 +259,7 @@ final class FlagContainerLayer: CALayer {
 
     private func updateLayer(
         _ layer: CALayer,
-        with state: inout AnimationState,
+        with state: inout AnimationState<AnimatedProperties>,
         deltaTime: TimeInterval
     ) {
         curve.update(
@@ -295,64 +287,3 @@ extension FlagContainerLayer: CALayerDelegate {
         null
     }
 }
-
-// MARK: - Preview
-
-#if DEBUG
-private final class FlagContainerPreviewView: UIView {
-    override class var layerClass: AnyClass { FlagContainerLayer.self }
-}
-
-private struct FlagContainerPreview: UIViewRepresentable {
-
-    typealias Flag = FlagContainerLayer.Flag
-
-    let flag: Flag
-
-    func makeUIView(context: Context) -> FlagContainerPreviewView {
-        let view = FlagContainerPreviewView()
-        view.backgroundColor = .boardBackground
-        return view
-    }
-
-    func updateUIView(_ uiView: FlagContainerPreviewView, context: Context) {
-        guard let layer = uiView.layer as? FlagContainerLayer else {
-            return
-        }
-        layer.changeFlag(to: flag)
-    }
-}
-
-struct FlagContainerPreviewContent: View {
-
-    @State private var flag: FlagContainerPreview.Flag = .none
-
-    var body: some View {
-        VStack(spacing: 20) {
-            FlagContainerPreview(flag: flag)
-                .frame(width: 100, height: 100)
-                .background {
-                    Rectangle()
-                        .stroke(lineWidth: 1)
-                        .opacity(0.1)
-                }
-            Button {
-                flag = flag.next()
-            } label: {
-                Text(verbatim: "Next Flag")
-                    .bold()
-                    .foregroundStyle(.white)
-                    .padding()
-                    .background {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .foregroundStyle(.accent)
-                    }
-            }
-        }
-    }
-}
-
-#Preview {
-    FlagContainerPreviewContent()
-}
-#endif

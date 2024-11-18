@@ -37,3 +37,19 @@ struct GaussianBlurFilter {
         return method(caFilterClass, selector, "gaussianBlur")
     }
 }
+
+struct BlurRadiusAnimatablePropertyKey: AnimatablePropertyKey {
+    
+    typealias Value = Float
+    
+    func apply(value: Float, to target: CALayer) {
+        target.setValue(value, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
+    }
+}
+
+extension AnimatablePropertyKeys {
+    
+    var blurRadius: BlurRadiusAnimatablePropertyKey {
+        return .init()
+    }
+}

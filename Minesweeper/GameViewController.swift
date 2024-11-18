@@ -4,7 +4,6 @@
 //
 
 import Combine
-import SnapKit
 import SwiftUI
 import UIKit
 import SwiftSignal
@@ -35,15 +34,17 @@ final class GameViewController: UIViewController {
         view.backgroundColor = .boardBackground
         feedback.prepare()
         
+        difficultyViewController.view.translatesAutoresizingMaskIntoConstraints = false
         addChild(difficultyViewController)
         view.addSubview(difficultyViewController.view)
         difficultyViewController.didMove(toParent: self)
-        difficultyViewController.view.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.width.greaterThanOrEqualTo(300)
-            make.height.greaterThanOrEqualTo(300)
-        }
-
+        NSLayoutConstraint.activate([
+            difficultyViewController.view.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            difficultyViewController.view.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            difficultyViewController.view.widthAnchor.constraint(greaterThanOrEqualToConstant: 300),
+            difficultyViewController.view.heightAnchor.constraint(greaterThanOrEqualToConstant: 300)
+        ])
+        
         let notificationCenter = NotificationCenter.default
         
         notificationCenter.publisher(for: .difficultyDidChange)
@@ -89,10 +90,13 @@ final class GameViewController: UIViewController {
             .padding(.horizontal, 12)
             .padding(.top, 5)
         }
+        gameStatusBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(gameStatusBar)
-        gameStatusBar.snp.makeConstraints { make in
-            make.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
-        }
+        NSLayoutConstraint.activate([
+            gameStatusBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            gameStatusBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            gameStatusBar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor)
+        ])
         
 //        let boardViewController = UIHostingController(
 //            rootView: BoardView()
@@ -100,16 +104,16 @@ final class GameViewController: UIViewController {
 //        )
         let boardViewController = BoardViewController(minefield: minefield)
         boardViewController.view.backgroundColor = .clear
+        boardViewController.view.translatesAutoresizingMaskIntoConstraints = false
         addChild(boardViewController)
         view.insertSubview(boardViewController.view, belowSubview: gameStatusBar)
         boardViewController.didMove(toParent: self)
-        boardViewController.view.snp.makeConstraints { make in
-            let padding: CGFloat = 6
-            make.top.equalTo(gameStatusBar.snp.bottom)
-                .offset(padding)
-            make.leading.trailing.bottom.equalTo(view.safeAreaLayoutGuide)
-                .inset(UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding))
-        }
+        NSLayoutConstraint.activate([
+            boardViewController.view.topAnchor.constraint(equalTo: gameStatusBar.bottomAnchor, constant: 6),
+            boardViewController.view.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 6),
+            boardViewController.view.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -6),
+            boardViewController.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6)
+        ])
         boardViewController.$gameStatus.sink { [weak self] status in
             switch status {
             case .playing:
@@ -129,26 +133,5 @@ final class GameViewController: UIViewController {
             height: difficulty.height,
             numberOfMines: difficulty.numberOfMines
         )
-        minefield?.$isCompleted.sink { [unowned self] completed in
-            if !completed { return }
-            
-            let confetti = ConfettiViewController()
-            guard let window = view.window else {
-                return
-            }
-
-            feedback.impactOccurred()
-            feedback.prepare()
-
-            window.addSubview(confetti.view)
-            confetti.view.snp.makeConstraints { make in
-                make.edges.equalToSuperview()
-            }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                confetti.view.removeFromSuperview()
-            }
-        }
-        .store(in: &cancellables)
     }
 }

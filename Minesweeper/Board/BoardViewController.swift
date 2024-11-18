@@ -3,10 +3,10 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
-import SnapKit
+import Combine
 import SwiftUI
 import UIKit
-import Combine
+import With
 
 public let null = NSNull()
 
@@ -27,7 +27,7 @@ extension CALayer {
 private let animationIDKey = "AnimationID"
 
 final class BoardViewController: UIViewController, ObservableObject {
-    
+
     public enum GameStatus {
         case idle
         case playing
@@ -44,7 +44,6 @@ final class BoardViewController: UIViewController, ObservableObject {
         var isPressed: Bool = false
         var isMenuActive: Bool = false
         var offset: CGPoint = .zero
-        var isAnimated: Bool = false
         var isExplodedAnimating: Bool = false
     }
 
@@ -78,7 +77,7 @@ final class BoardViewController: UIViewController, ObservableObject {
             view.setNeedsLayout()
         }
     }
-    
+
     @Published
     private(set) var gameStatus: GameStatus = .idle
 
@@ -93,13 +92,13 @@ final class BoardViewController: UIViewController, ObservableObject {
     private var pieceStates: [Int: PieceState] = [:]
     private var overlayLayers: [Int: OverlayLayer] = [:]
 
-    private var flagMenus: [Int: (CAShapeLayer, CAShapeLayer)] = [:]
-    private var menuArcPaths: [CALayer: CGPath] = [:]
+    private var flagMenus: [Int: (LayerAnimatable, LayerAnimatable)] = [:]
     private var isPositionAnimationEnabled: Bool = false
     private var isGameOver: Bool = false
 
     private typealias AnimationID = UInt64
 
+    private lazy var pathSpring: Spring = .init(duration: 0.24)
     private var animationCompletions: [AnimationID: () -> Void] = [:]
 
     private var layoutCache: LayoutCache = .init()
@@ -108,6 +107,17 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     @Incrementable
     private var animationID: AnimationID = 0
+    private lazy var topLayerPathRadiusKey = CustomAnimatablePropertyKey(identifier: "topLayerPathRadius") { [weak self] radius, layer in
+        let path = self?.arcPath(direction: .top, rect: layer.bounds, radius: radius)
+        (layer as? CAShapeLayer)?.path = path
+    }
+    private lazy var bottomLayerPathRadiusKey = CustomAnimatablePropertyKey(identifier: "bottomLayerPathRadius") { [weak self] radius, layer in
+        let path = self?.arcPath(direction: .bottom, rect: layer.bounds, radius: radius)
+        (layer as? CAShapeLayer)?.path = path
+    }
+
+    private let normalLineWidthFactor: CGFloat = 0.15
+    private let highlightedLineWidthFactor: CGFloat = 0.36
 
     init(minefield: Minefield) {
         self.minefield = minefield
@@ -232,72 +242,21 @@ final class BoardViewController: UIViewController, ObservableObject {
             guard let state = pieceStates[index] else {
                 continue
             }
+            if !state.isMenuActive && !menu.0.isAnimating && !menu.1.isAnimating {
+                continue
+            }
 
-            let isMenuActive = state.isMenuActive
-
-            let padding: CGFloat = 30
-            let frame = self.rectInContentBounds(self.frame(at: index).insetBy(dx: -padding, dy: -padding))
+            let cellFrame = self.rectInContentBounds(self.frame(at: index))
+            let padding: CGFloat = cellFrame.width * 0.2
+            let frame = cellFrame.insetBy(dx: -padding, dy: -padding)
             let foregroundColor = UIColor.systemOrange.cgColor
 
-            func doActionForMenu(_ action: (CAShapeLayer, ArcDirection) -> Void) {
-                [(menu.0, ArcDirection.top), (menu.1, ArcDirection.bottom)].forEach {
-                    action($0.0, $0.1)
+            [(menu.0, ArcDirection.top), (menu.1, ArcDirection.bottom)].forEach {
+                guard let layer = $0.0.layer as? CAShapeLayer else {
+                    return
                 }
-            }
-
-            doActionForMenu { layer, direction in
                 layer.strokeColor = foregroundColor
-                layer.lineWidth = 10
                 layer.frame = frame
-            }
-
-            if !state.isAnimated {
-                let pathCurve = Spring(duration: 0.24)
-                let blurCurve = Spring(duration: 0.2)
-
-                doActionForMenu { layer, direction in
-                    let beganPath = arcPath(direction: direction, rect: frame, radius: 0)
-                    let endPath = arcPath(direction: direction, rect: frame, radius: 30)
-                    let highlightedPath = arcPath(direction: direction, rect: frame, radius: 35)
-
-                    let pathAnimation: CASpringAnimation
-                    let blurAnimation: CASpringAnimation
-                    if isMenuActive {
-                        pathAnimation = layer.pathAnimation(
-                            pathCurve,
-                            from: .constant(beganPath),
-                            to: endPath
-                        )
-                        blurAnimation = layer.customKeyPathAnimation(
-                            blurCurve,
-                            keyPath: GaussianBlurFilter.inputRadiusKeyPath,
-                            from: .constant(10),
-                            to: 0
-                        )
-                    } else {
-                        pathAnimation = layer.pathAnimation(
-                            pathCurve,
-                            from: .current,
-                            to: beganPath
-                        )
-                        blurAnimation = layer.customKeyPathAnimation(
-                            blurCurve,
-                            keyPath: GaussianBlurFilter.inputRadiusKeyPath,
-                            from: .current,
-                            to: 10
-                        )
-                        addCompletion(for: pathAnimation) { [self] in
-                            layer.removeFromSuperlayer()
-                            if let pieceLayer = self.pieceLayers[index] {
-                                self.view.layer.insertSublayer(pieceLayer, at: 0)
-                            }
-                            self.flagMenus.removeValue(forKey: index)
-                        }
-                    }
-                    layer.add(pathAnimation, forKey: "path")
-                    layer.add(blurAnimation, forKey: "blurFilter")
-                }
-                state.isAnimated = true
             }
         }
     }
@@ -502,43 +461,99 @@ final class BoardViewController: UIViewController, ObservableObject {
             }
 
             let translation = state.translation
-            let length = layoutCache.cellLength
-            if translation.length > length && !isGameOver {
-                if flagMenus[index] == nil {
-                    pieceState.isMenuActive = true
-                    pieceState.isAnimated = false
+            let length = layoutCache.cellLength / 2
+            if translation.length > length && !isGameOver && !pieceState.isMenuActive {
+                pieceState.isMenuActive = true
 
-                    func makeMenuLayer() -> CAShapeLayer {
+                if flagMenus[index] == nil {
+                    func makeMenuAnimatable() -> LayerAnimatable {
                         let shapeLayer = CAShapeLayer()
+                        shapeLayer.setValue(index, forKey: "boardIndex")
                         shapeLayer.delegate = self
                         shapeLayer.allowsEdgeAntialiasing = true
                         shapeLayer.lineCap = .round
                         shapeLayer.lineJoin = .round
 
-                        if var blurFilter = GaussianBlurFilter() {
-                            blurFilter.inputRadius = 10
+                        if let blurFilter = GaussianBlurFilter() {
                             shapeLayer.filters = [blurFilter.effect]
                         }
                         view.layer.insertToFront(shapeLayer)
-                        return shapeLayer
+
+                        let animatable: LayerAnimatable = .init(shapeLayer)
+                        animatable.update(value: 10, for: \.blurRadius)
+                        return animatable
                     }
 
-                    let topLayer = makeMenuLayer()
-                    let bottomLayer = makeMenuLayer()
+                    let topLayer = makeMenuAnimatable()
+                    let bottomLayer = makeMenuAnimatable()
                     view.layer.insertToFront(layer)
                     flagMenus[index] = (topLayer, bottomLayer)
+
+                    // Make sure the frame of layer is correctly set.
+                    view.setNeedsLayout()
+                    view.layoutIfNeeded()
+
+                    topLayer.update(value: topLayer.layer.bounds.height * normalLineWidthFactor, for: \.lineWidth)
+                    bottomLayer.update(value: bottomLayer.layer.bounds.height * normalLineWidthFactor, for: \.lineWidth)
+                }
+
+                let (topLayer, bottomLayer) = flagMenus[index]!
+                withLayerAnimation(pathSpring) {
+                    topLayer.update(value: 0, for: \.blurRadius)
+                    topLayer.update(value: topLayer.layer.bounds.height / 2, for: topLayerPathRadiusKey)
+                    topLayer.update(value: 1, for: \.opacity)
+                    bottomLayer.update(value: 0, for: \.blurRadius)
+                    bottomLayer.update(value: bottomLayer.layer.bounds.height / 2, for: bottomLayerPathRadiusKey)
+                    bottomLayer.update(value: 1, for: \.opacity)
                 }
             }
 
-            func calculatePieceOffset() -> CGPoint {
+            if pieceState.isMenuActive, let menu = flagMenus[index] {
+                let point = state.locationInView
+                let center = layer.position
+                let dx = abs(point.x - center.x)
+                let dy = point.y - center.y
+                let halfAngle = atan2(dy, dx)
+
+                var highlightedTop = false
+                var highlightedBottom = false
+                if translation.length > length {
+                    if halfAngle > 0 {
+                        highlightedBottom = (.pi / 2 - halfAngle) <= (20 * .pi / 180)
+                    } else {
+                        highlightedTop = (.pi / 2 - abs(halfAngle)) <= (20 * .pi / 180)
+                    }
+                }
+
+                let (topAnimatable, bottomAnimatable) = menu
+                withLayerAnimation(.init(response: 0.3, dampingRatio: 0.6)) {
+                    topAnimatable.update(
+                        value: bottomAnimatable.layer.bounds.height * (highlightedTop ? 0.65 : 0.5),
+                        for: topLayerPathRadiusKey
+                    )
+                    topAnimatable.update(
+                        value: (highlightedTop ? highlightedLineWidthFactor : normalLineWidthFactor) * topAnimatable.layer.bounds.height,
+                        for: \.lineWidth
+                    )
+                    bottomAnimatable.update(
+                        value: bottomAnimatable.layer.bounds.height * (highlightedBottom ? 0.65 : 0.5),
+                        for: bottomLayerPathRadiusKey
+                    )
+                    bottomAnimatable.update(
+                        value: (highlightedBottom ? highlightedLineWidthFactor : normalLineWidthFactor) * bottomAnimatable.layer.bounds.height,
+                        for: \.lineWidth
+                    )
+                }
+            }
+
+            pieceState.offset = with {
                 let range: CGFloat = 5
                 let width = translation.x
                 let height = translation.y
                 let x = rubberBandOffset(abs(width), range: range)
                 let y = rubberBandOffset(abs(height), range: range)
-                return .init(x: width < 0 ? -x : x, y: height < 0 ? -y : y)
+                return CGPoint(x: width < 0 ? -x : x, y: height < 0 ? -y : y)
             }
-            pieceState.offset = calculatePieceOffset()
             layer.transform = isPressedTransform
         case .cancelled, .ended:
             guard let layer = context.layer,
@@ -548,20 +563,33 @@ final class BoardViewController: UIViewController, ObservableObject {
                 return
             }
 
+            let length = layoutCache.cellLength
+            if state.translation.length < length && !pieceState.isMenuActive {
+                handlePieceTap(layer: layer, at: position)
+            }
+
             isPositionAnimationEnabled = true
+            pieceState.isMenuActive = false
+            if let (topLayer, bottomLayer) = flagMenus[context.index] {
+                withLayerAnimation(pathSpring) {
+                    topLayer.update(value: 10, for: \.blurRadius)
+                    bottomLayer.update(value: 10, for: \.blurRadius)
+
+                    topLayer.update(value: 0, for: topLayerPathRadiusKey)
+                    bottomLayer.update(value: 0, for: bottomLayerPathRadiusKey)
+
+                    topLayer.update(value: 0, for: \.opacity)
+                    bottomLayer.update(value: 0, for: \.opacity)
+                }
+            }
+
             withTransaction {
                 pieceState.isPressed = false
-                pieceState.isMenuActive = false
-                pieceState.isAnimated = false
                 pieceState.offset = .zero
                 layer.transform = CATransform3DIdentity
             } completion: {
                 self.isPositionAnimationEnabled = false
-            }
-
-            let length = layoutCache.cellLength
-            if state.translation.length < length && !pieceState.isMenuActive {
-                handlePieceTap(layer: layer, at: position)
+                layer.removeAllAnimations()
             }
         default:
             return
@@ -587,9 +615,9 @@ final class BoardViewController: UIViewController, ObservableObject {
         let targetAngle: Double =
             switch direction {
             case .top:
-                90
-            case .bottom:
                 270
+            case .bottom:
+                90
             }
         let angle: Double = 40
         path.addArc(
@@ -624,13 +652,13 @@ final class BoardViewController: UIViewController, ObservableObject {
         } else {
             minefield.clearMine(at: position)
             needsUpdate = true
-            
+
             if gameStatus == .idle {
                 gameStatus = .playing
             }
         }
         if !needsUpdate { return }
-        
+
         updateMinesWithAnimation(anchor: position)
 
         if minefield.isExploded {
@@ -699,10 +727,14 @@ final class BoardViewController: UIViewController, ObservableObject {
         feedback.impactOccurred()
         feedback.prepare()
 
+        confetti.view.translatesAutoresizingMaskIntoConstraints = false
         window.addSubview(confetti.view)
-        confetti.view.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
+        NSLayoutConstraint.activate([
+            confetti.view.leadingAnchor.constraint(equalTo: window.leadingAnchor),
+            confetti.view.trailingAnchor.constraint(equalTo: window.trailingAnchor),
+            confetti.view.topAnchor.constraint(equalTo: window.topAnchor),
+            confetti.view.bottomAnchor.constraint(equalTo: window.bottomAnchor),
+        ])
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             confetti.view.removeFromSuperview()
@@ -770,13 +802,13 @@ final class BoardViewController: UIViewController, ObservableObject {
                             CATransform3DMakeScale(0.9, 0.9, 1),
                             CATransform3DMakeTranslation(
                                 -0.06 * frame.width,
-                                 0.06 * frame.height,
+                                0.06 * frame.height,
                                 0
                             )
                         )
                     )
                     bombAnimations.append(transformAnimation)
-                    
+
                     let flagLayer = overlay.flagContainerLayer
                     let flagAnimation = flagLayer.transformAnimation(
                         .init(duration: 0.3),
@@ -915,10 +947,14 @@ final class BoardViewController: UIViewController, ObservableObject {
 extension BoardViewController: CALayerDelegate {
 
     func action(for layer: CALayer, forKey event: String) -> (any CAAction)? {
+        if layer is CAShapeLayer {
+            return null
+        }
+
         switch event {
         case "transform", "opacity":
             return springAnimation(.init(duration: 0.24))
-        case "cornerRadius", GaussianBlurFilter.inputRadiusKeyPath:
+        case "cornerRadius":
             return springAnimation(.init(duration: 0.2))
         case "position":
             if isPositionAnimationEnabled {

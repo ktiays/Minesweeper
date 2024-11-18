@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		ED8C8D5D2CDC629A0030DEEC /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED8C8D5C2CDC629A0030DEEC /* SnapKit */; };
 		ED8C8D602CDC62A50030DEEC /* With in Frameworks */ = {isa = PBXBuildFile; productRef = ED8C8D5F2CDC62A50030DEEC /* With */; };
 		ED8C8D632CDC62B00030DEEC /* SwiftSignal in Frameworks */ = {isa = PBXBuildFile; productRef = ED8C8D622CDC62B00030DEEC /* SwiftSignal */; };
 		ED8C8D652CDC62B00030DEEC /* SwiftUISignal in Frameworks */ = {isa = PBXBuildFile; productRef = ED8C8D642CDC62B00030DEEC /* SwiftUISignal */; };
@@ -46,7 +45,6 @@
 				ED8C8D602CDC62A50030DEEC /* With in Frameworks */,
 				ED8C8D632CDC62B00030DEEC /* SwiftSignal in Frameworks */,
 				ED8C8D652CDC62B00030DEEC /* SwiftUISignal in Frameworks */,
-				ED8C8D5D2CDC629A0030DEEC /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,7 +87,6 @@
 			);
 			name = Minesweeper;
 			packageProductDependencies = (
-				ED8C8D5C2CDC629A0030DEEC /* SnapKit */,
 				ED8C8D5F2CDC62A50030DEEC /* With */,
 				ED8C8D622CDC62B00030DEEC /* SwiftSignal */,
 				ED8C8D642CDC62B00030DEEC /* SwiftUISignal */,
@@ -125,7 +122,6 @@
 			mainGroup = ED8C8D3A2CDC62840030DEEC;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				ED8C8D5B2CDC629A0030DEEC /* XCRemoteSwiftPackageReference "SnapKit" */,
 				ED8C8D5E2CDC62A40030DEEC /* XCRemoteSwiftPackageReference "With" */,
 				ED8C8D612CDC62B00030DEEC /* XCRemoteSwiftPackageReference "swift-signal" */,
 			);
@@ -376,14 +372,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		ED8C8D5B2CDC629A0030DEEC /* XCRemoteSwiftPackageReference "SnapKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.7.1;
-			};
-		};
 		ED8C8D5E2CDC62A40030DEEC /* XCRemoteSwiftPackageReference "With" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ktiays/With.git";
@@ -403,11 +391,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		ED8C8D5C2CDC629A0030DEEC /* SnapKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = ED8C8D5B2CDC629A0030DEEC /* XCRemoteSwiftPackageReference "SnapKit" */;
-			productName = SnapKit;
-		};
 		ED8C8D5F2CDC62A50030DEEC /* With */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = ED8C8D5E2CDC62A40030DEEC /* XCRemoteSwiftPackageReference "With" */;

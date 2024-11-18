@@ -491,7 +491,8 @@ final class BoardViewController: UIViewController, ObservableObject {
 
             let translation = state.translation
             let length = layoutCache.cellLength / 2
-            if translation.length > length && !isGameOver && !pieceState.isMenuActive {
+            let canActivateMenu = translation.length > length && isSupportedDragInteraction
+            if canActivateMenu && !isGameOver && !pieceState.isMenuActive {
                 pieceState.isMenuActive = true
 
                 if flagMenus[index] == nil {
@@ -560,7 +561,7 @@ final class BoardViewController: UIViewController, ObservableObject {
 
                 var highlightedTop = false
                 var highlightedBottom = false
-                if translation.length > length {
+                if canActivateMenu {
                     if halfAngle > 0 {
                         highlightedBottom = (.pi / 2 - halfAngle) <= (20 * .pi / 180)
                     } else {
@@ -574,7 +575,7 @@ final class BoardViewController: UIViewController, ObservableObject {
                 }
 
                 let (topAnimatable, bottomAnimatable) = menu
-                withLayerAnimation(.init(response: 0.3, dampingRatio: 0.6)) {
+                withLayerAnimation(.init(response: 0.3, dampingRatio: 0.7)) {
                     topAnimatable.update(
                         value: bottomAnimatable.layer.bounds.height * (highlightedTop ? 0.65 : 0.5),
                         for: topLayerPathRadiusKey

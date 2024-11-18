@@ -45,6 +45,7 @@ final class BoardViewController: UIViewController, ObservableObject {
         var isMenuActive: Bool = false
         var offset: CGPoint = .zero
         var isExplodedAnimating: Bool = false
+        var candidateFlag: Minefield.Flag?
     }
 
     @MainActor
@@ -109,11 +110,39 @@ final class BoardViewController: UIViewController, ObservableObject {
     private var animationID: AnimationID = 0
     private lazy var topLayerPathRadiusKey = CustomAnimatablePropertyKey(identifier: "topLayerPathRadius") { [weak self] radius, layer in
         let path = self?.arcPath(direction: .top, rect: layer.bounds, radius: radius)
-        (layer as? CAShapeLayer)?.path = path
+        guard let shapeLayer = layer as? CAShapeLayer else {
+            return
+        }
+        shapeLayer.path = path
+
+        if let symbolLayer = shapeLayer.sublayers?.first {
+            let height = shapeLayer.lineWidth
+            let bounds = layer.bounds
+            symbolLayer.frame = .init(
+                x: (bounds.width - height) / 2,
+                y: (bounds.height / 2 - radius) - height / 2,
+                width: height,
+                height: height
+            )
+        }
     }
     private lazy var bottomLayerPathRadiusKey = CustomAnimatablePropertyKey(identifier: "bottomLayerPathRadius") { [weak self] radius, layer in
         let path = self?.arcPath(direction: .bottom, rect: layer.bounds, radius: radius)
-        (layer as? CAShapeLayer)?.path = path
+        guard let shapeLayer = layer as? CAShapeLayer else {
+            return
+        }
+        shapeLayer.path = path
+
+        if let symbolLayer = shapeLayer.sublayers?.first {
+            let height = shapeLayer.lineWidth
+            let bounds = layer.bounds
+            symbolLayer.frame = .init(
+                x: (bounds.width - height) / 2,
+                y: (bounds.height / 2 + radius) - height / 2,
+                width: height,
+                height: height
+            )
+        }
     }
 
     private let normalLineWidthFactor: CGFloat = 0.15
@@ -484,8 +513,21 @@ final class BoardViewController: UIViewController, ObservableObject {
                         return animatable
                     }
 
+                    // Add the flag and maybe symbol to the menu.
+                    let imageCache = ImageManager.shared.cache
+                    let flagSymbolLayer = NonAnimatingLayer()
+                    flagSymbolLayer.allowsEdgeAntialiasing = true
+                    flagSymbolLayer.contents = imageCache.flag
+                    let maybeSymbolLayer = NonAnimatingLayer()
+                    maybeSymbolLayer.allowsEdgeAntialiasing = true
+                    maybeSymbolLayer.contents = imageCache.maybe
+
                     let topLayer = makeMenuAnimatable()
+                    topLayer.layer.addSublayer(maybeSymbolLayer)
+
                     let bottomLayer = makeMenuAnimatable()
+                    bottomLayer.layer.addSublayer(flagSymbolLayer)
+
                     view.layer.insertToFront(layer)
                     flagMenus[index] = (topLayer, bottomLayer)
 
@@ -508,6 +550,7 @@ final class BoardViewController: UIViewController, ObservableObject {
                 }
             }
 
+            pieceState.candidateFlag = nil
             if pieceState.isMenuActive, let menu = flagMenus[index] {
                 let point = state.locationInView
                 let center = layer.position
@@ -523,6 +566,11 @@ final class BoardViewController: UIViewController, ObservableObject {
                     } else {
                         highlightedTop = (.pi / 2 - abs(halfAngle)) <= (20 * .pi / 180)
                     }
+                }
+                if highlightedTop {
+                    pieceState.candidateFlag = .maybe
+                } else if highlightedBottom {
+                    pieceState.candidateFlag = .flag
                 }
 
                 let (topAnimatable, bottomAnimatable) = menu
@@ -567,6 +615,17 @@ final class BoardViewController: UIViewController, ObservableObject {
             if state.translation.length < length && !pieceState.isMenuActive {
                 handlePieceTap(layer: layer, at: position)
             }
+            
+            if let candidateFlag = pieceState.candidateFlag {
+                let location = minefield.location(at: position)
+                let currentFlag = location.flag
+                let targetFlag: Minefield.Flag = if currentFlag == candidateFlag {
+                    .none
+                } else {
+                    candidateFlag
+                }
+                changeFlag(targetFlag, at: position)
+            }
 
             isPositionAnimationEnabled = true
             pieceState.isMenuActive = false
@@ -586,6 +645,7 @@ final class BoardViewController: UIViewController, ObservableObject {
             withTransaction {
                 pieceState.isPressed = false
                 pieceState.offset = .zero
+                pieceState.candidateFlag = nil
                 layer.transform = CATransform3DIdentity
             } completion: {
                 self.isPositionAnimationEnabled = false
@@ -932,7 +992,7 @@ final class BoardViewController: UIViewController, ObservableObject {
 
             if let flag {
                 location.flag = flag
-                flagLayer.changeFlag(to: flag)
+                flagLayer.changeFlag(to: flag, with: flag == .maybe ? .top : .bottom)
             } else {
                 let next = location.flag.next()
                 location.flag = next

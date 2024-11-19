@@ -25,6 +25,7 @@ extension CALayer {
 }
 
 private let animationIDKey = "AnimationID"
+private let boardIndexKey = "BoardIndex"
 
 final class BoardViewController: UIViewController, ObservableObject {
 
@@ -174,6 +175,7 @@ final class BoardViewController: UIViewController, ObservableObject {
             layer.allowsEdgeAntialiasing = true
             layer.masksToBounds = true
             layer.cornerCurve = .continuous
+            layer.setValue(i, forKey: boardIndexKey)
             view.layer.addSublayer(layer)
             pieceLayers[i] = layer
         }
@@ -254,7 +256,11 @@ final class BoardViewController: UIViewController, ObservableObject {
                 layer.cornerRadius = isMenuActive ? (length / 2) : radius
                 layer.transform = transform
                 if !isExplodedAnimating {
-                    layer.contents = imageCache.unrevealed
+                    if minefield.isExploded && location.hasMine {
+                        layer.contents = imageCache.exploded
+                    } else {
+                        layer.contents = imageCache.unrevealed
+                    }
                 }
 
                 if let overlay = overlayLayers[index] {
@@ -498,7 +504,7 @@ final class BoardViewController: UIViewController, ObservableObject {
                 if flagMenus[index] == nil {
                     func makeMenuAnimatable() -> LayerAnimatable {
                         let shapeLayer = CAShapeLayer()
-                        shapeLayer.setValue(index, forKey: "boardIndex")
+                        shapeLayer.setValue(index, forKey: boardIndexKey)
                         shapeLayer.delegate = self
                         shapeLayer.allowsEdgeAntialiasing = true
                         shapeLayer.lineCap = .round
@@ -650,7 +656,9 @@ final class BoardViewController: UIViewController, ObservableObject {
                 layer.transform = CATransform3DIdentity
             } completion: {
                 self.isPositionAnimationEnabled = false
-                layer.removeAllAnimations()
+                if !pieceState.isExplodedAnimating {
+                    layer.removeAllAnimations()
+                }
             }
         default:
             return
@@ -917,11 +925,7 @@ final class BoardViewController: UIViewController, ObservableObject {
                     from: .current,
                     to: CATransform3DIdentity
                 )
-                self.addCompletion(for: restoreAnimation) {
-                    pieceState.isExplodedAnimating = false
-                    layer.backgroundColor = nil
-                }
-
+                
                 var animations: [CAAnimation] = [restoreAnimation]
 
                 if hasMine {
@@ -935,6 +939,10 @@ final class BoardViewController: UIViewController, ObservableObject {
 
                 let animationGroup = layer.groupAnimation(with: animations)
                 animationGroup.duration = restoreAnimation.settlingDuration
+                self.addCompletion(for: animationGroup) {
+                    pieceState.isExplodedAnimating = false
+                    layer.backgroundColor = nil
+                }
                 layer.add(animationGroup, forKey: nil)
             }
             layer.add(animationGroup, forKey: nil)
@@ -1008,6 +1016,12 @@ final class BoardViewController: UIViewController, ObservableObject {
 extension BoardViewController: CALayerDelegate {
 
     func action(for layer: CALayer, forKey event: String) -> (any CAAction)? {
+        if minefield.isExploded {
+            let index = layer.value(forKey: boardIndexKey) as! Int
+            if let state = pieceStates[index], state.isExplodedAnimating {
+                return null
+            }
+        }
         if layer is CAShapeLayer {
             return null
         }

@@ -98,10 +98,6 @@ final class GameViewController: UIViewController {
             gameStatusBar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor)
         ])
         
-//        let boardViewController = UIHostingController(
-//            rootView: BoardView()
-//                .environmentObject(minefield)
-//        )
         let boardViewController = BoardViewController(minefield: minefield)
         boardViewController.view.backgroundColor = .clear
         boardViewController.view.translatesAutoresizingMaskIntoConstraints = false

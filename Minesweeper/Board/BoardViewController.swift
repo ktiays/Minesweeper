@@ -161,6 +161,7 @@ final class BoardViewController: UIViewController, ObservableObject {
     override func viewDidLoad() {
         super.viewDidLoad()
         feedback.prepare()
+        view.backgroundColor = .clear
 
         if let secondaryClickGestureClass = NSClassFromString("_UISecondaryClickDriverGestureRecognizer") as? UIGestureRecognizer.Type {
             let gesture = secondaryClickGestureClass.init(target: self, action: #selector(handleSecondaryClick(_:)))

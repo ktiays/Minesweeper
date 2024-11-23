@@ -37,6 +37,14 @@
     _window.maxSize = maxSize;
 }
 
+- (CGRect)frame {
+    return _window.frame;
+}
+
+- (void)setFrame:(CGRect)frameRect display:(BOOL)displayFlag animate:(BOOL)animateFlag {
+    [[_window animator] setFrame:frameRect display:displayFlag animate:animateFlag];
+}
+
 @end
 
 #endif

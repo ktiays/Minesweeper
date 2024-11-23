@@ -31,8 +31,12 @@ typedef NS_OPTIONS(NSUInteger, NSWindowStyleMask) {
 
 @property (nonatomic, assign) NSSize minSize;
 @property (nonatomic, assign) NSSize maxSize;
+@property (nonatomic, assign, readonly) NSRect frame;
 
 + (instancetype)_windowWithContentViewController:(id)viewController styleMask:(NSUInteger)styleMask;
+- (instancetype)animator;
+
+- (void)setFrame:(CGRect)frameRect display:(BOOL)displayFlag animate:(BOOL)animateFlag;
 
 @end
 

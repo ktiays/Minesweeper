@@ -24,9 +24,10 @@ struct TimeView: View {
     private var colon: some View {
         VStack(spacing: 4) {
             Circle()
+                .frame(width: 4, height: 4)
             Circle()
+                .frame(width: 4, height: 4)
         }
-        .frame(width: 4)
         .padding(.trailing, 1)
     }
 

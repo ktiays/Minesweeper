@@ -4,7 +4,6 @@
 //
 
 import Combine
-import SwiftSignal
 import SwiftUI
 import UIKit
 
@@ -41,7 +40,8 @@ final class GameViewController: UIViewController {
         boardViewController.view.translatesAutoresizingMaskIntoConstraints = false
         let gameStatusBar = _UIHostingView(
             rootView: GameStatusBar(
-                statusPublisher: boardViewController.$gameStatus.eraseToAnyPublisher(),
+                statusPublisher: boardViewController.$gameStatus,
+                remainingMinesPublisher: boardViewController.$remainingMines,
                 dismissAction: { [weak self] in
                     self?.dismiss(animated: true)
                 }
@@ -109,11 +109,31 @@ final class GameViewController: UIViewController {
 struct GameStatusBar: View {
 
     let statusPublisher: AnyPublisher<BoardViewController.GameStatus, Never>
+    let remainingMinesPublisher: AnyPublisher<Int, Never>
     let dismissAction: () -> Void
 
-    @State private var isRunning: Bool = false
+    @State private var status: BoardViewController.GameStatus = .idle
+    private var isRunning: Bool {
+        status == .playing
+    }
+    
+    @State private var remainingMines: Int = 0
 
     @Environment(\.isMacCatalyst) private var isMacCatalyst
+
+    init<P, R>(
+        statusPublisher: P,
+        remainingMinesPublisher: R,
+        dismissAction: @escaping () -> Void
+    )
+    where
+        P: Publisher, P.Output == BoardViewController.GameStatus, P.Failure == Never,
+        R: Publisher, R.Output == Int, R.Failure == Never
+    {
+        self.statusPublisher = statusPublisher.eraseToAnyPublisher()
+        self.remainingMinesPublisher = remainingMinesPublisher.eraseToAnyPublisher()
+        self.dismissAction = dismissAction
+    }
 
     var body: some View {
         HStack {
@@ -130,18 +150,37 @@ struct GameStatusBar: View {
             .buttonStyle(ToolbarButtonStyle())
 
             TimeView(isPaused: !isRunning)
+                .opacity(status != .idle ? 1 : 0.28)
             Spacer()
+
+            HStack {
+                Text(verbatim: "\(remainingMines)")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .contentTransition(.numericText())
+                    .foregroundStyle(remainingMines >= 0 ? .primary : Color.warningText)
+                BombIcon()
+                    .foregroundStyle(.accent.opacity(0.8))
+                    .frame(width: 22, height: 22)
+            }
+            .padding(.leading, 11)
+            .padding(.trailing, 8)
+            .padding(.vertical, 5)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .foregroundStyle(.accent)
+                    .opacity(0.16)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.top, 5)
         .onReceive(statusPublisher) { status in
-            switch status {
-            case .playing:
-                isRunning = true
-            case .win, .lose:
-                isRunning = false
-            default:
-                break
+            withAnimation {
+                self.status = status
+            }
+        }
+        .onReceive(remainingMinesPublisher) { numberOfMines in
+            withAnimation {
+                self.remainingMines = numberOfMines
             }
         }
     }
@@ -176,7 +215,10 @@ struct ToolbarButtonStyle: ButtonStyle {
 }
 
 #Preview {
-    GameStatusBar(statusPublisher: PassthroughSubject().eraseToAnyPublisher()) {
+    GameStatusBar(
+        statusPublisher: PassthroughSubject().eraseToAnyPublisher(),
+        remainingMinesPublisher: CurrentValueSubject(10).eraseToAnyPublisher()
+    ) {
 
     }
     .frame(maxHeight: .infinity)

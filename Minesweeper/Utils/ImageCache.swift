@@ -56,7 +56,7 @@ final class ImageCache {
         return image
     }()
     
-    private(set) lazy var boom: CGImage = renderContent {
+    private(set) lazy var bomb: CGImage = renderContent {
         BombIcon()
             .foregroundStyle(.black.opacity(0.46))
     }

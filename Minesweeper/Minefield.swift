@@ -7,7 +7,7 @@ import Combine
 import Foundation
 import QuartzCore
 
-public final class Minefield: ObservableObject {
+public final class Minefield {
 
     public struct Position: Hashable, CustomStringConvertible {
         public var x: Int
@@ -69,17 +69,14 @@ public final class Minefield: ObservableObject {
 
     public var autoFlag: Bool = false
 
-    @Published
     public private(set) var locations: [Location]
 
-    private var numberOfCleared: Int = 0
-    private var numberOfFlagged: Int = 0
+    private(set) var numberOfCleared: Int = 0
+    private(set) var numberOfFlagged: Int = 0
     private var isPlacedMines: Bool = false
 
-    @Published
     public private(set) var isExploded: Bool = false
 
-    @Published
     public private(set) var isCompleted: Bool = false
 
     public init(width: Int, height: Int, numberOfMines: Int) {
@@ -104,13 +101,6 @@ public final class Minefield: ObservableObject {
 
     public func location(at position: Position) -> Location {
         locationAt(x: position.x, y: position.y)
-    }
-    
-    public func withMutableLocation(at position: Position, _ body: (inout Location) -> Void) {
-        let index = position.y * width + position.x
-        var location = locations[index]
-        body(&location)
-        locations[index] = location
     }
 
     public func changeFlag(to flag: Flag, at position: Position) {

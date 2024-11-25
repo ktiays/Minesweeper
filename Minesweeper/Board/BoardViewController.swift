@@ -57,7 +57,7 @@ final class BoardViewController: UIViewController, ObservableObject {
         private(set) lazy var bombLayer: CALayer = {
             let layer = CALayer()
             layer.allowsEdgeAntialiasing = true
-            layer.contents = imageCache.boom
+            layer.contents = imageCache.bomb
             return layer
         }()
 
@@ -82,6 +82,9 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     @Published
     private(set) var gameStatus: GameStatus = .idle
+    
+    @Published
+    private(set) var remainingMines: Int
 
     #if targetEnvironment(macCatalyst)
     private let isSupportedDragInteraction: Bool = false
@@ -151,6 +154,7 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     init(minefield: Minefield) {
         self.minefield = minefield
+        remainingMines = minefield.numberOfMines
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -983,32 +987,33 @@ final class BoardViewController: UIViewController, ObservableObject {
     }
 
     private func changeFlag(_ flag: Minefield.Flag? = nil, at position: Minefield.Position) {
-        minefield.withMutableLocation(at: position) { location in
-            if location.isCleared {
-                return
-            }
-
-            let index = position.y * minefield.width + position.x
-            guard let layer = pieceLayers[index] else {
-                return
-            }
-
-            let flagLayer = overlayLayer(at: index).flagContainerLayer
-            if flagLayer.superlayer == nil {
-                layer.addSublayer(flagLayer)
-                view.setNeedsLayout()
-                view.layoutIfNeeded()
-            }
-
-            if let flag {
-                location.flag = flag
-                flagLayer.changeFlag(to: flag, with: flag == .maybe ? .top : .bottom)
-            } else {
-                let next = location.flag.next()
-                location.flag = next
-                flagLayer.changeFlag(to: next)
-            }
+        let location = minefield.location(at: position)
+        if location.isCleared {
+            return
         }
+
+        let index = position.y * minefield.width + position.x
+        guard let layer = pieceLayers[index] else {
+            return
+        }
+
+        let flagLayer = overlayLayer(at: index).flagContainerLayer
+        if flagLayer.superlayer == nil {
+            layer.addSublayer(flagLayer)
+            view.setNeedsLayout()
+            view.layoutIfNeeded()
+        }
+
+        if let flag {
+            minefield.changeFlag(to: flag, at: position)
+            flagLayer.changeFlag(to: flag, with: flag == .maybe ? .top : .bottom)
+        } else {
+            let next = location.flag.next()
+            minefield.changeFlag(to: next, at: position)
+            flagLayer.changeFlag(to: next)
+        }
+        
+        remainingMines = minefield.numberOfMines - minefield.numberOfFlagged
     }
 }
 

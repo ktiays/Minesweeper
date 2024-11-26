@@ -99,7 +99,9 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     private var flagMenus: [Int: (LayerAnimatable, LayerAnimatable)] = [:]
     private var isPositionAnimationEnabled: Bool = false
-    private var isGameOver: Bool = false
+    private var isGameOver: Bool {
+        gameStatus == .win || gameStatus == .lose
+    }
 
     private typealias AnimationID = UInt64
 
@@ -661,9 +663,6 @@ final class BoardViewController: UIViewController, ObservableObject {
                 layer.transform = CATransform3DIdentity
             } completion: {
                 self.isPositionAnimationEnabled = false
-                if !pieceState.isExplodedAnimating {
-                    layer.removeAllAnimations()
-                }
             }
         default:
             return
@@ -737,14 +736,12 @@ final class BoardViewController: UIViewController, ObservableObject {
 
         if minefield.isExploded {
             explode(at: position)
-            isGameOver = true
             gameStatus = .lose
             return
         }
 
         if minefield.isCompleted {
             congratulations()
-            isGameOver = true
             gameStatus = .win
             return
         }
@@ -961,6 +958,10 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     @objc
     private func handleSecondaryClick(_ sender: UIGestureRecognizer) {
+        if isGameOver {
+            return
+        }
+        
         let location = sender.location(in: view)
         switch sender.state {
         case .began:

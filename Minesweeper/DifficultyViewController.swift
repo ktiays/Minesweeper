@@ -32,11 +32,24 @@ final class DifficultyViewController: UIViewController {
     }
 }
 
-enum Difficulty: String, Hashable {
-    case beginner = "Beginner"
-    case intermediate = "Intermediate"
-    case expert = "Expert"
-    case custom = "Custom"
+enum Difficulty: Hashable, CustomLocalizedStringResourceConvertible {
+    case beginner
+    case intermediate
+    case expert
+    case custom
+    
+    var localizedStringResource: LocalizedStringResource {
+        switch self {
+        case .beginner:
+            return "Beginner"
+        case .intermediate:
+            return "Intermediate"
+        case .expert:
+            return "Expert"
+        case .custom:
+            return "Custom"
+        }
+    }
 }
 
 struct DifficultyItem: Identifiable, Hashable {
@@ -46,7 +59,7 @@ struct DifficultyItem: Identifiable, Hashable {
     var id: Difficulty { difficulty }
 
     var title: String {
-        difficulty.rawValue
+        .init(localized: difficulty.localizedStringResource)
     }
 
     let width: Int

@@ -110,8 +110,11 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     private var layoutCache: LayoutCache = .init()
     private lazy var isPressedTransform: CATransform3D = CATransform3DMakeScale(0.9, 0.9, 1)
-    private lazy var feedback: UIImpactFeedbackGenerator = .init(style: .rigid)
-
+    
+    private lazy var lightFeedback: UIImpactFeedbackGenerator = .init(style: .light)
+    private lazy var rigidFeedback: UIImpactFeedbackGenerator = .init(style: .rigid)
+    private lazy var notificationFeedback: UINotificationFeedbackGenerator = .init()
+    
     @Incrementable
     private var animationID: AnimationID = 0
     private lazy var topLayerPathRadiusKey = CustomAnimatablePropertyKey(identifier: "topLayerPathRadius") { [weak self] radius, layer in
@@ -166,7 +169,9 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        feedback.prepare()
+        lightFeedback.prepare()
+        rigidFeedback.prepare()
+        notificationFeedback.prepare()
         view.backgroundColor = .clear
 
         if let secondaryClickGestureClass = NSClassFromString("_UISecondaryClickDriverGestureRecognizer") as? UIGestureRecognizer.Type {
@@ -501,12 +506,15 @@ final class BoardViewController: UIViewController, ObservableObject {
             if index == NSNotFound {
                 return
             }
+            
+            var needsFeedback: Bool = false
 
             let translation = state.translation
             let length = layoutCache.cellLength / 2
             let canActivateMenu = translation.length > length && isSupportedDragInteraction
             if canActivateMenu && !isGameOver && !pieceState.isMenuActive {
                 pieceState.isMenuActive = true
+                needsFeedback = true
 
                 if flagMenus[index] == nil {
                     func makeMenuAnimatable() -> LayerAnimatable {
@@ -564,6 +572,7 @@ final class BoardViewController: UIViewController, ObservableObject {
                 }
             }
 
+            let previousCandidateFlag = pieceState.candidateFlag
             pieceState.candidateFlag = nil
             if pieceState.isMenuActive, let menu = flagMenus[index] {
                 let point = state.locationInView
@@ -606,6 +615,14 @@ final class BoardViewController: UIViewController, ObservableObject {
                         for: \.lineWidth
                     )
                 }
+            }
+            if let candidateFlag = pieceState.candidateFlag, candidateFlag != previousCandidateFlag {
+                needsFeedback = true
+            }
+            
+            if needsFeedback {
+                rigidFeedback.impactOccurred(intensity: 0.6)
+                rigidFeedback.prepare()
             }
 
             pieceState.offset = with {
@@ -745,6 +762,9 @@ final class BoardViewController: UIViewController, ObservableObject {
             gameStatus = .win
             return
         }
+        
+        lightFeedback.impactOccurred(intensity: 0.8)
+        lightFeedback.prepare()
     }
 
     private func updateMinesWithAnimation(anchor: Minefield.Position) {
@@ -795,8 +815,8 @@ final class BoardViewController: UIViewController, ObservableObject {
             return
         }
 
-        feedback.impactOccurred()
-        feedback.prepare()
+        notificationFeedback.notificationOccurred(.success)
+        notificationFeedback.prepare()
 
         confetti.view.translatesAutoresizingMaskIntoConstraints = false
         window.addSubview(confetti.view)
@@ -813,6 +833,9 @@ final class BoardViewController: UIViewController, ObservableObject {
     }
 
     private func explode(at anchor: Minefield.Position) {
+        notificationFeedback.notificationOccurred(.error)
+        notificationFeedback.prepare()
+        
         let anchorFrame = frame(at: anchor)
         let contentDiagonal = layoutCache.contentRect.diagonal
         forEachField { x, y, index in

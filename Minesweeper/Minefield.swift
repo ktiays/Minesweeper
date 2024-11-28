@@ -168,7 +168,8 @@ public final class Minefield {
         logger.info("\(self.numberOfMines) Mines placed in \(elapsed * 1000.0)ms")
     }
 
-    public func multiRelease(at position: Position) {
+    @discardableResult
+    public func multiRelease(at position: Position) -> Bool {
         let location = self.location(at: position)
 
         var flags = 0
@@ -190,7 +191,7 @@ public final class Minefield {
         } else if autoFlag && unknowns == numberOfMines {
             doClear = false
         } else {
-            return
+            return false
         }
 
         for neighbour in self.neighbour(of: position) {
@@ -201,6 +202,7 @@ public final class Minefield {
                 changeFlag(to: .flag, at: neighbour)
             }
         }
+        return doClear
     }
 
     public func clearMine(at position: Position) {

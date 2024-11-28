@@ -7,16 +7,27 @@ import SwiftUI
 
 struct TimeView: View {
 
-    @State private var elapsedSeconds: Int = 0
+    @Binding var elapsedSeconds: Int
     let isPaused: Bool
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    @State private var hours: String?
-    @State private var minutes: String = "00"
-    @State private var seconds: String = "00"
+    private var hours: String? {
+        let hours = elapsedSeconds / 3600
+        if hours > 0 {
+            return String(format: "%02d", hours)
+        }
+        return nil
+    }
+    private var minutes: String {
+        .init(format: "%02d", (elapsedSeconds % 3600) / 60)
+    }
+    private var seconds: String {
+        .init(format: "%02d", elapsedSeconds % 60)
+    }
     
-    init(isPaused: Bool = false) {
+    init(seconds: Binding<Int>, isPaused: Bool = false) {
+        _elapsedSeconds = seconds
         self.isPaused = isPaused
     }
     
@@ -47,26 +58,9 @@ struct TimeView: View {
         .onReceive(timer) { _ in
             if isPaused { return }
             
-            elapsedSeconds += 1
             withAnimation {
-                updateTimeText()
+                elapsedSeconds += 1
             }
         }
     }
-
-    private func updateTimeText() {
-        let hours = elapsedSeconds / 3600
-        let minutes = (elapsedSeconds % 3600) / 60
-        let seconds = elapsedSeconds % 60
-
-        if hours > 0 {
-            self.hours = String(format: "%02d", hours)
-        }
-        self.minutes = String(format: "%02d", minutes)
-        self.seconds = String(format: "%02d", seconds)
-    }
-}
-
-#Preview {
-    TimeView()
 }

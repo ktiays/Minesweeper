@@ -73,7 +73,7 @@ final class BoardViewController: UIViewController, ObservableObject {
         case bottom
     }
 
-    let minefield: Minefield
+    private(set) var minefield: Minefield
     var spacing: CGFloat = 4 {
         didSet {
             view.setNeedsLayout()
@@ -84,7 +84,7 @@ final class BoardViewController: UIViewController, ObservableObject {
     private(set) var gameStatus: GameStatus = .idle
     
     @Published
-    private(set) var remainingMines: Int
+    private(set) var remainingMines: Int = 0
 
     #if targetEnvironment(macCatalyst)
     private let isSupportedDragInteraction: Bool = false
@@ -159,14 +159,13 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     init(minefield: Minefield) {
         self.minefield = minefield
-        remainingMines = minefield.numberOfMines
         super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         lightFeedback.prepare()
@@ -180,17 +179,8 @@ final class BoardViewController: UIViewController, ObservableObject {
         } else {
             logger.error("Failed to create secondary click gesture recognizer")
         }
-
-        for i in 0..<minefield.count {
-            let layer = CALayer()
-            layer.delegate = self
-            layer.allowsEdgeAntialiasing = true
-            layer.masksToBounds = true
-            layer.cornerCurve = .continuous
-            layer.setValue(i, forKey: boardIndexKey)
-            view.layer.addSublayer(layer)
-            pieceLayers[i] = layer
-        }
+        
+        reset(with: minefield)
     }
 
     private func forEachField(_ body: (Int, Int, Int) -> Void) {
@@ -230,6 +220,37 @@ final class BoardViewController: UIViewController, ObservableObject {
             width: rect.width,
             height: rect.height
         )
+    }
+    
+    func reset(with minefield: Minefield) {
+        self.minefield = minefield
+        remainingMines = minefield.numberOfMines
+        
+        if let sublayers = view.layer.sublayers {
+            for sublayer in sublayers {
+                sublayer.removeFromSuperlayer()
+            }
+        }
+        pieceLayers.removeAll()
+        pieceStates.removeAll()
+        gridLayers.removeAll()
+        overlayLayers.removeAll()
+        flagMenus.removeAll()
+        animationCompletions.removeAll()
+        isPositionAnimationEnabled = false
+        
+        for i in 0..<minefield.count {
+            let layer = CALayer()
+            layer.delegate = self
+            layer.allowsEdgeAntialiasing = true
+            layer.masksToBounds = true
+            layer.cornerCurve = .continuous
+            layer.setValue(i, forKey: boardIndexKey)
+            view.layer.addSublayer(layer)
+            pieceLayers[i] = layer
+        }
+        
+        gameStatus = .idle
     }
 
     // MARK: - Layout
@@ -497,7 +518,8 @@ final class BoardViewController: UIViewController, ObservableObject {
             fallthrough
         case .changed:
             guard let layer = context.layer,
-                let pieceState = context.pieceState
+                  let pieceState = context.pieceState,
+                  let position = context.position
             else {
                 return
             }
@@ -511,7 +533,8 @@ final class BoardViewController: UIViewController, ObservableObject {
 
             let translation = state.translation
             let length = layoutCache.cellLength / 2
-            let canActivateMenu = translation.length > length && isSupportedDragInteraction
+            let isCleared = minefield.location(at: position).isCleared
+            let canActivateMenu = !isCleared && translation.length > length && isSupportedDragInteraction
             if canActivateMenu && !isGameOver && !pieceState.isMenuActive {
                 pieceState.isMenuActive = true
                 needsFeedback = true
@@ -621,7 +644,7 @@ final class BoardViewController: UIViewController, ObservableObject {
             }
             
             if needsFeedback {
-                rigidFeedback.impactOccurred(intensity: 0.6)
+                rigidFeedback.impactOccurred(intensity: 0.9)
                 rigidFeedback.prepare()
             }
 
@@ -736,8 +759,9 @@ final class BoardViewController: UIViewController, ObservableObject {
         var needsUpdate = false
         if location.isCleared {
             if location.numberOfMinesAround > 0 {
-                minefield.multiRelease(at: position)
-                needsUpdate = true
+                if minefield.multiRelease(at: position) {
+                    needsUpdate = true
+                }
             }
         } else {
             minefield.clearMine(at: position)

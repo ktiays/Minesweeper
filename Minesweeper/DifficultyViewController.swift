@@ -37,7 +37,7 @@ enum Difficulty: Hashable, CustomLocalizedStringResourceConvertible {
     case intermediate
     case expert
     case custom
-    
+
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .beginner:

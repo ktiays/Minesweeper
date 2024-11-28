@@ -11,10 +11,11 @@ final class GameViewController: UIViewController {
 
     let difficulty: DifficultyItem
 
-    private let minefield: Minefield
+    private var minefield: Minefield!
     private var cancellables: Set<AnyCancellable> = .init()
 
     private lazy var feedback: UIImpactFeedbackGenerator = .init(style: .light)
+    private var boardViewController: BoardViewController!
 
     #if targetEnvironment(macCatalyst)
     private weak var windowProxy: WindowProxy?
@@ -36,14 +37,14 @@ final class GameViewController: UIViewController {
         view.backgroundColor = .boardBackground
         feedback.prepare()
 
-        let boardViewController = BoardViewController(minefield: minefield)
+        boardViewController = BoardViewController(minefield: minefield)
         boardViewController.view.translatesAutoresizingMaskIntoConstraints = false
         let gameStatusBar = _UIHostingView(
             rootView: GameStatusBar(
                 statusPublisher: boardViewController.$gameStatus,
                 remainingMinesPublisher: boardViewController.$remainingMines,
                 dismissAction: { [weak self] in
-                    self?.dismiss(animated: true)
+                    self?.handleBackButton()
                 }
             )
         )
@@ -77,13 +78,28 @@ final class GameViewController: UIViewController {
                 self.windowProxy = windowProxy
             }
             .store(in: &cancellables)
+        #else
+        let navigationBar = _UIHostingView(
+            rootView: NavigationBar(statusPublisher: boardViewController.$gameStatus) { [weak self] in
+                self?.handleBackButton()
+            } replayAction: { [weak self] context in
+                self?.handleReplay(context)
+            }
+        )
+        navigationBar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(navigationBar)
+        NSLayoutConstraint.activate([
+            navigationBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+        ])
         #endif
     }
 
+    #if targetEnvironment(macCatalyst)
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
 
-        #if targetEnvironment(macCatalyst)
         if let window = view.window {
             let windowProxy = msp_windowProxyForUIWindow(window)
             let windowFrame = windowProxy.frame
@@ -102,7 +118,56 @@ final class GameViewController: UIViewController {
             windowProxy.minSize = targetSize.applying(.init(scaleX: 0.5, y: 0.5))
             self.windowProxy = windowProxy
         }
-        #endif
+    }
+    #endif
+
+    private func handleBackButton() {
+        if boardViewController!.gameStatus == .playing {
+            let alert = AlertViewController(
+                title: String(localized: "Exit Game"),
+                message: String(localized: "Your game is not finished yet, do you want to end and exit?")
+            ) {
+                Button(String(localized: "Cancel"), role: .cancel) { [weak self] in
+                    self?.dismiss(animated: true)
+                }
+                Button(String(localized: "Confirm"), role: .destructive) { [weak self] in
+                    self?.presentingViewController?.dismiss(animated: true)
+                }
+            }
+            alert.transitioningDelegate = alert
+            self.present(alert, animated: true)
+        } else {
+            dismiss(animated: true)
+        }
+    }
+
+    private func handleReplay(_ actionContext: ReplayButton.ActionContext) {
+        func restartGame() {
+            minefield = .init(width: difficulty.width, height: difficulty.height, numberOfMines: difficulty.numberOfMines)
+            boardViewController.reset(with: minefield)
+        }
+        if boardViewController!.gameStatus == .playing {
+            let alert = AlertViewController(
+                title: String(localized: "Restart Game"),
+                message: String(localized: "Are you sure you want to restart the game? All progress will be lost.")
+            ) {
+                Button(String(localized: "Cancel"), role: .cancel) { [weak self] in
+                    actionContext(false)
+                    self?.dismiss(animated: true)
+                }
+                Button(String(localized: "Restart"), role: .destructive) { [weak self] in
+                    guard let self else { return }
+                    restartGame()
+                    actionContext(true)
+                    dismiss(animated: true)
+                }
+            }
+            alert.transitioningDelegate = alert
+            self.present(alert, animated: true)
+        } else {
+            restartGame()
+            actionContext(true)
+        }
     }
 }
 
@@ -116,7 +181,8 @@ struct GameStatusBar: View {
     private var isRunning: Bool {
         status == .playing
     }
-    
+    @State private var seconds: Int = 0
+
     @State private var remainingMines: Int = 0
 
     @Environment(\.isMacCatalyst) private var isMacCatalyst
@@ -137,19 +203,11 @@ struct GameStatusBar: View {
 
     var body: some View {
         HStack {
-            Button {
-                dismissAction()
-            } label: {
-                Image(systemName: "arrow.left")
-                    .bold()
-                    .frame(
-                        width: isMacCatalyst ? 30 : 40,
-                        height: isMacCatalyst ? 30 : 40
-                    )
+            if isMacCatalyst {
+                BackButton(action: dismissAction)
             }
-            .buttonStyle(ToolbarButtonStyle())
 
-            TimeView(isPaused: !isRunning)
+            TimeView(seconds: $seconds, isPaused: !isRunning)
                 .opacity(status != .idle ? 1 : 0.28)
             Spacer()
 
@@ -164,17 +222,20 @@ struct GameStatusBar: View {
             }
             .padding(.leading, 11)
             .padding(.trailing, 8)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
             .background {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .foregroundStyle(.accent)
                     .opacity(0.16)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, isMacCatalyst ? 12 : 16)
         .padding(.top, 5)
         .onReceive(statusPublisher) { status in
             withAnimation {
+                if status == .idle {
+                    seconds = 0
+                }
                 self.status = status
             }
         }
@@ -186,7 +247,7 @@ struct GameStatusBar: View {
     }
 }
 
-struct ToolbarButtonStyle: ButtonStyle {
+struct BackButtonStyle: ButtonStyle {
 
     @State private var isHovered: Bool = false
     @Environment(\.isMacCatalyst) private var isMacCatalyst
@@ -214,14 +275,161 @@ struct ToolbarButtonStyle: ButtonStyle {
     }
 }
 
-#Preview {
-    GameStatusBar(
-        statusPublisher: PassthroughSubject().eraseToAnyPublisher(),
-        remainingMinesPublisher: CurrentValueSubject(10).eraseToAnyPublisher()
-    ) {
+struct ReplayButtonStyle: ButtonStyle {
 
+    @State private var isHovered: Bool = false
+    @Environment(\.isMacCatalyst) private var isMacCatalyst
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                if isHovered {
+                    RoundedRectangle(cornerRadius: isMacCatalyst ? 8 : 12, style: .continuous)
+                        .foregroundStyle(.secondary)
+                        .opacity(0.2)
+                }
+            }
+            .scaleEffect(
+                x: configuration.isPressed ? 0.9 : 1,
+                y: configuration.isPressed ? 0.9 : 1
+            )
+            .onHover { isHover in
+                self.isHovered = isHover
+            }
+            .animation(.spring(duration: 0.2), value: configuration.isPressed)
     }
-    .frame(maxHeight: .infinity)
+}
+
+struct BackButton: View {
+
+    private let action: () -> Void
+
+    @Environment(\.isMacCatalyst) private var isMacCatalyst
+
+    init(action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            Image(systemName: "arrow.left")
+                .bold()
+                .frame(width: isMacCatalyst ? 30 : 40, height: isMacCatalyst ? 30 : 40)
+        }
+        .buttonStyle(BackButtonStyle())
+    }
+}
+
+struct ReplayButton: View {
+
+    @Environment(\.isMacCatalyst) private var isMacCatalyst
+
+    @State private var count: Int = 0
+    private let disabled: Bool
+    private let action: (ActionContext) -> Void
+
+    init(disabled: Bool = false, action: @escaping (ActionContext) -> Void) {
+        self.disabled = disabled
+        self.action = action
+    }
+
+    struct ActionContext {
+        let completion: (Bool) -> Void
+        
+        func callAsFunction(_ handled: Bool) {
+            completion(handled)
+        }
+    }
+
+    var body: some View {
+        Button {
+            let context = ActionContext { handled in
+                if handled {
+                    withAnimation {
+                        count += 1
+                    }
+                }
+            }
+            action(context)
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .bold()
+                .modifier(SymbolRotation(value: count))
+                .frame(width: isMacCatalyst ? 30 : 40, height: isMacCatalyst ? 30 : 40)
+                .opacity(disabled ? 0.2 : 1)
+        }
+        .buttonStyle(ReplayButtonStyle())
+        .disabled(disabled)
+    }
+
+    private struct SymbolRotation: ViewModifier {
+        let value: Int
+
+        func body(content: Content) -> some View {
+            if #available(iOS 18.0, macOS 15.0, *) {
+                content.symbolEffect(.rotate, options: .speed(2), value: value)
+            }
+        }
+    }
+}
+
+#if !targetEnvironment(macCatalyst)
+struct NavigationBar: View {
+
+    let statusPublisher: AnyPublisher<BoardViewController.GameStatus, Never>
+    let dismissAction: () -> Void
+    let replayAction: (ReplayButton.ActionContext) -> Void
+
+    @Environment(\.isMacCatalyst) private var isMacCatalyst
+    @State private var isReplayDisabled: Bool = false
+
+    init<P>(
+        statusPublisher: P,
+        dismissAction: @escaping () -> Void,
+        replayAction: @escaping (ReplayButton.ActionContext) -> Void
+    ) where P: Publisher, P.Output == BoardViewController.GameStatus, P.Failure == Never {
+        self.statusPublisher = statusPublisher.eraseToAnyPublisher()
+        self.dismissAction = dismissAction
+        self.replayAction = replayAction
+    }
+
+    var body: some View {
+        HStack {
+            BackButton(action: dismissAction)
+            Spacer()
+            ReplayButton(disabled: isReplayDisabled, action: replayAction)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 5)
+        .onReceive(statusPublisher) { status in
+            withAnimation {
+                isReplayDisabled = status == .idle
+            }
+        }
+    }
+}
+#endif
+
+#Preview {
+    VStack {
+        GameStatusBar(
+            statusPublisher: PassthroughSubject(),
+            remainingMinesPublisher: CurrentValueSubject(10)
+        ) {
+
+        }
+        Spacer()
+
+        #if !targetEnvironment(macCatalyst)
+        NavigationBar(statusPublisher: CurrentValueSubject(.idle)) {
+
+        } replayAction: { context in
+            context(true)
+        }
+        #endif
+    }
     .background {
         Color.boardBackground
             .ignoresSafeArea()

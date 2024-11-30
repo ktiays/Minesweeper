@@ -25,6 +25,7 @@ final class AlertViewController: UIViewController {
         self.content = AnyView(content())
         super.init(nibName: nil, bundle: nil)
         self.title = title
+        self.transitioningDelegate = self
     }
 
     required init?(coder: NSCoder) {

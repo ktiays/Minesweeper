@@ -18,7 +18,13 @@ final class GameViewController: UIViewController {
     private var boardViewController: BoardViewController!
 
     #if targetEnvironment(macCatalyst)
-    private weak var windowProxy: WindowProxy?
+    private var windowProxy: WindowProxy?
+    private var toolbarHostingView: MSPUIHostingView?
+
+    deinit {
+        toolbarHostingView?.removeFromSuperview()
+        toolbarHostingView = nil
+    }
     #endif
 
     init(difficulty: DifficultyItem) {
@@ -65,19 +71,14 @@ final class GameViewController: UIViewController {
         ])
 
         #if targetEnvironment(macCatalyst)
-        NotificationCenter.default.publisher(for: .MSPNSWindowDidCreateNotificationName)
-            .sink { [unowned self] notification in
-                guard let uiWindow = notification.userInfo?["window"] as? UIWindow else {
-                    return
-                }
-                if uiWindow != view.window { return }
+        let toolbarContainer = UIView()
+        toolbarContainer.translatesAutoresizingMaskIntoConstraints = false
 
-                guard let windowProxy = notification.object as? WindowProxy else {
-                    return
-                }
-                self.windowProxy = windowProxy
+        let toolbarButton = NoSafeAreaHostingView(
+            rootView: ToolbarButton(statusPublisher: boardViewController.$gameStatus) { [weak self] context in
+                self?.handleReplay(context)
             }
-            .store(in: &cancellables)
+        )
         #else
         let navigationBar = _UIHostingView(
             rootView: NavigationBar(statusPublisher: boardViewController.$gameStatus) { [weak self] in
@@ -100,7 +101,7 @@ final class GameViewController: UIViewController {
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
 
-        if let window = view.window {
+        if let window = view.window, self.windowProxy == nil {
             let windowProxy = msp_windowProxyForUIWindow(window)
             let windowFrame = windowProxy.frame
             let center = windowFrame.center
@@ -119,6 +120,23 @@ final class GameViewController: UIViewController {
             self.windowProxy = windowProxy
         }
     }
+
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+
+        guard windowProxy != nil, let toolbarHostingView else {
+            return
+        }
+
+        let minToolbarHeight: CGFloat = 52
+        let containerHeight = view.bounds.height
+        toolbarHostingView.frame = .init(
+            x: 0,
+            y: containerHeight - minToolbarHeight,
+            width: view.bounds.width,
+            height: minToolbarHeight
+        )
+    }
     #endif
 
     private func handleBackButton() {
@@ -134,13 +152,16 @@ final class GameViewController: UIViewController {
                     self?.presentingViewController?.dismiss(animated: true)
                 }
             }
-            alert.transitioningDelegate = alert
             self.present(alert, animated: true)
         } else {
             dismiss(animated: true)
         }
     }
 
+    @objc private func replay(_ sender: Any) {
+        handleReplay(.init { _ in })
+    }
+    
     private func handleReplay(_ actionContext: ReplayButton.ActionContext) {
         func restartGame() {
             minefield = .init(width: difficulty.width, height: difficulty.height, numberOfMines: difficulty.numberOfMines)
@@ -337,7 +358,7 @@ struct ReplayButton: View {
 
     struct ActionContext {
         let completion: (Bool) -> Void
-        
+
         func callAsFunction(_ handled: Bool) {
             completion(handled)
         }
@@ -359,6 +380,7 @@ struct ReplayButton: View {
                 .modifier(SymbolRotation(value: count))
                 .frame(width: isMacCatalyst ? 30 : 40, height: isMacCatalyst ? 30 : 40)
                 .opacity(disabled ? 0.2 : 1)
+                .contentShape(Rectangle())
         }
         .buttonStyle(ReplayButtonStyle())
         .disabled(disabled)
@@ -375,7 +397,42 @@ struct ReplayButton: View {
     }
 }
 
-#if !targetEnvironment(macCatalyst)
+#if targetEnvironment(macCatalyst)
+extension Notification.Name {
+    static let toolbarReplayButtonItemDidChange = Notification.Name("toolbarReplayButtonItemDidChange")
+}
+
+extension NSToolbarItem.Identifier {
+    static let replayButton = NSToolbarItem.Identifier("ReplayButton")
+}
+
+struct ToolbarButton: View {
+    let statusPublisher: AnyPublisher<BoardViewController.GameStatus, Never>
+    let replayAction: (ReplayButton.ActionContext) -> Void
+
+    @State private var isReplayButtonDisabled: Bool = true
+
+    init<P>(
+        statusPublisher: P,
+        replayAction: @escaping (ReplayButton.ActionContext) -> Void
+    ) where P: Publisher, P.Output == BoardViewController.GameStatus, P.Failure == Never {
+        self.statusPublisher = statusPublisher.eraseToAnyPublisher()
+        self.replayAction = replayAction
+    }
+
+    var body: some View {
+        ReplayButton(disabled: isReplayButtonDisabled) { context in
+            replayAction(context)
+        }
+        .padding(.horizontal, 10)
+        .onReceive(statusPublisher) { status in
+            withAnimation {
+                isReplayButtonDisabled = status == .idle
+            }
+        }
+    }
+}
+#else
 struct NavigationBar: View {
 
     let statusPublisher: AnyPublisher<BoardViewController.GameStatus, Never>
@@ -411,27 +468,3 @@ struct NavigationBar: View {
     }
 }
 #endif
-
-#Preview {
-    VStack {
-        GameStatusBar(
-            statusPublisher: PassthroughSubject(),
-            remainingMinesPublisher: CurrentValueSubject(10)
-        ) {
-
-        }
-        Spacer()
-
-        #if !targetEnvironment(macCatalyst)
-        NavigationBar(statusPublisher: CurrentValueSubject(.idle)) {
-
-        } replayAction: { context in
-            context(true)
-        }
-        #endif
-    }
-    .background {
-        Color.boardBackground
-            .ignoresSafeArea()
-    }
-}

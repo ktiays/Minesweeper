@@ -8,7 +8,11 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface MSPWindowProxy ()
+@interface MSPWindowProxy () {
+    @package
+    __weak UINSWindowProxy *_windowProxy;
+    __weak NSWindow *_window;
+}
 
 + (instancetype)proxyWithUINSWindowProxy:(UINSWindowProxy *)proxy;
 

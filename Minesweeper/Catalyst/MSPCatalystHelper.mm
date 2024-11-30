@@ -9,6 +9,7 @@
 
 #import "UINSWindowHooks.h"
 #import "UINSApplicationDelegateHooks.h"
+#import "NSToolbarViewHooks.h"
 
 #import "NSApplication.h"
 #import "MSPWindowProxy+Private.h"

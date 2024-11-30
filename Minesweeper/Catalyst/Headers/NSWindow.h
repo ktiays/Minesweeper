@@ -10,6 +10,10 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class NSToolbar;
+@class NSView;
+@class NSViewController;
+
 typedef NS_OPTIONS(NSUInteger, NSWindowStyleMask) {
     NSWindowStyleMaskBorderless = 0,
     NSWindowStyleMaskTitled = 1 << 0,
@@ -25,15 +29,20 @@ typedef NS_OPTIONS(NSUInteger, NSWindowStyleMask) {
     NSWindowStyleMaskHUDWindow = 1 << 13
 };
 
-@interface NSWindow
+@interface NSWindow : NSObject
 
 @property (nonatomic, assign) BOOL titlebarAppearsTransparent;
 
 @property (nonatomic, assign) NSSize minSize;
 @property (nonatomic, assign) NSSize maxSize;
 @property (nonatomic, assign, readonly) NSRect frame;
+@property (nonatomic, strong) NSToolbar *toolbar;
+@property (nonatomic, assign) CGFloat titlebarHeight;
 
-+ (instancetype)_windowWithContentViewController:(id)viewController styleMask:(NSUInteger)styleMask;
+@property (nonatomic, strong) NSView *contentView;
+@property (nonatomic, strong) NSViewController *contentViewController;
+
++ (instancetype)_windowWithContentViewController:(NSViewController *)viewController styleMask:(NSWindowStyleMask)styleMask;
 - (instancetype)animator;
 
 - (void)setFrame:(CGRect)frameRect display:(BOOL)displayFlag animate:(BOOL)animateFlag;

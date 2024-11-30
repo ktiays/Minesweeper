@@ -1,15 +1,6 @@
 {
-  "originHash" : "538ec288d146a23bbaf0959072662937390def4f425d794741898bf5825532ab",
+  "originHash" : "b10fa717b9cd0aa16df355c4a5643495b1c881e605db7fc8d36634551467c0fe",
   "pins" : [
-    {
-      "identity" : "swift-signal",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/unixzii/swift-signal",
-      "state" : {
-        "branch" : "main",
-        "revision" : "39127faee5c1f1c57effb81b172ef989089e8bd7"
-      }
-    },
     {
       "identity" : "with",
       "kind" : "remoteSourceControl",

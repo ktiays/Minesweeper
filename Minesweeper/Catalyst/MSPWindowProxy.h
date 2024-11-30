@@ -5,18 +5,32 @@
 
 #import <Foundation/Foundation.h>
 
+#import "MSPViewProxy.h"
+
 NS_ASSUME_NONNULL_BEGIN
+
+@class NSToolbar;
 
 NS_SWIFT_NAME(WindowProxy)
 @interface MSPWindowProxy : NSObject
 
+/// The minimum size to which the window's frame (including its title bar) can be sized.
 @property (nonatomic, assign) CGSize minSize;
 
+/// The maximum size to which the window's frame (including its title bar) can be sized.
 @property (nonatomic, assign) CGSize maxSize;
 
+/// The window's frame rectangle in screen coordinates, including the title bar.
 @property (nonatomic, assign, readonly) CGRect frame;
 
-/// Sets the origin and size of the window’s frame rectangle, with optional animation, according to a given frame rectangle,
+/// The window's toolbar.
+@property (nonatomic, strong) NSToolbar *toolbar;
+
+@property (nonatomic, strong, nullable) MSPViewProxy *toolbarView;
+
+@property (nonatomic, strong, nullable) MSPViewProxy *contentView;
+
+/// Sets the origin and size of the window's frame rectangle, with optional animation, according to a given frame rectangle,
 /// thereby setting its position and size onscreen.
 ///
 /// @param frameRect The new frame rectangle for the window.

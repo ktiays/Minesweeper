@@ -7,12 +7,12 @@
 
 #if TARGET_OS_MACCATALYST
 
-#import "MSPWindowProxy+Private.h"
+#import <QuartzCore/QuartzCore.h>
 
-@implementation MSPWindowProxy {
-    UINSWindowProxy *_windowProxy;
-    NSWindow *_window;
-}
+#import "MSPWindowProxy+Private.h"
+#import "MSPViewProxy+Private.h"
+
+@implementation MSPWindowProxy
 
 + (instancetype)proxyWithUINSWindowProxy:(UINSWindowProxy *)proxy {
     auto instance = [MSPWindowProxy new];
@@ -43,6 +43,24 @@
 
 - (void)setFrame:(CGRect)frameRect display:(BOOL)displayFlag animate:(BOOL)animateFlag {
     [[_window animator] setFrame:frameRect display:displayFlag animate:animateFlag];
+}
+
+- (void)setToolbar:(id)toolbar {
+    _window.toolbar = toolbar;
+}
+
+- (id)toolbar {
+    return _window.toolbar;
+}
+
+- (MSPViewProxy *)toolbarView {
+    auto toolbar = (NSObject *) _window.toolbar;
+    auto toolbarView = (NSView *) [toolbar valueForKey:@"_toolbarView"];
+    return [MSPViewProxy proxyWithNSView:toolbarView];
+}
+
+- (MSPViewProxy *)contentView {
+    return [MSPViewProxy proxyWithNSView:_window.contentView];
 }
 
 @end

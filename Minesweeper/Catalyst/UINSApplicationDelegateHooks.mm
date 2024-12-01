@@ -40,12 +40,6 @@ void prepareUINSApplicationDelegate(void) {
             auto window = windowScene.keyWindow;
             if (window) {
                 auto windowProxy = msp_windowProxyForUIWindow(window);
-                auto userInfo = @{
-                    @"window": window,
-                };
-                [[NSNotificationCenter defaultCenter] postNotificationName:MSPNSWindowDidCreateNotificationName
-                                                                    object:windowProxy
-                                                                  userInfo:userInfo];
                 auto nsWindow = windowProxy->_window;
                 auto themeFrame = nsWindow.contentView.superview;
                 auto titleTextField = [themeFrame _titleTextField];
@@ -60,6 +54,7 @@ void prepareUINSApplicationDelegate(void) {
                 auto size = [themeFrame _titlebarTitleRect].size;
                 textFieldUIView.frame = CGRectMake(0, 0, size.width, size.height);
                 
+                // Patch `removeFromSuperview` method of system text field to avoid view hierarchy error.
                 auto textFieldClass = [titleTextField class];
                 auto newClassName = [NSString stringWithFormat:@"%@_%p", NSStringFromClass(textFieldClass), titleTextField];
                 auto newTextFieldClass = objc_allocateClassPair(textFieldClass, newClassName.UTF8String, 0);

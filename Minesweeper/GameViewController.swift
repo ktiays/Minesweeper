@@ -15,16 +15,19 @@ final class GameViewController: UIViewController {
     private var cancellables: Set<AnyCancellable> = .init()
 
     private lazy var feedback: UIImpactFeedbackGenerator = .init(style: .light)
+    private var gameStatusBar: _UIHostingView<GameStatusBar>!
     private var boardViewController: BoardViewController!
 
     #if targetEnvironment(macCatalyst)
     private var windowProxy: WindowProxy?
-    private var toolbarHostingView: MSPUIHostingView?
-
-    deinit {
-        toolbarHostingView?.removeFromSuperview()
-        toolbarHostingView = nil
+    private var toolbar: Toolbar? {
+        if let window = view.window {
+            return ToolbarManager.shared.toolbar(for: window)
+        }
+        return nil
     }
+    #else
+    private var navigationBar: _UIHostingView<NavigationBar>!
     #endif
 
     init(difficulty: DifficultyItem) {
@@ -44,8 +47,7 @@ final class GameViewController: UIViewController {
         feedback.prepare()
 
         boardViewController = BoardViewController(minefield: minefield)
-        boardViewController.view.translatesAutoresizingMaskIntoConstraints = false
-        let gameStatusBar = _UIHostingView(
+        gameStatusBar = _UIHostingView(
             rootView: GameStatusBar(
                 statusPublisher: boardViewController.$gameStatus,
                 remainingMinesPublisher: boardViewController.$remainingMines,
@@ -54,46 +56,20 @@ final class GameViewController: UIViewController {
                 }
             )
         )
-        gameStatusBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(gameStatusBar)
         addChild(boardViewController)
         view.insertSubview(boardViewController.view, belowSubview: gameStatusBar)
         boardViewController.didMove(toParent: self)
-        NSLayoutConstraint.activate([
-            gameStatusBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            gameStatusBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            gameStatusBar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
 
-            boardViewController.view.topAnchor.constraint(equalTo: gameStatusBar.bottomAnchor, constant: 6),
-            boardViewController.view.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 6),
-            boardViewController.view.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -6),
-            boardViewController.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6),
-        ])
-
-        #if targetEnvironment(macCatalyst)
-        let toolbarContainer = UIView()
-        toolbarContainer.translatesAutoresizingMaskIntoConstraints = false
-
-        let toolbarButton = NoSafeAreaHostingView(
-            rootView: ToolbarButton(statusPublisher: boardViewController.$gameStatus) { [weak self] context in
-                self?.handleReplay(context)
-            }
-        )
-        #else
-        let navigationBar = _UIHostingView(
+        #if !targetEnvironment(macCatalyst)
+        navigationBar = _UIHostingView(
             rootView: NavigationBar(statusPublisher: boardViewController.$gameStatus) { [weak self] in
                 self?.handleBackButton()
             } replayAction: { [weak self] context in
                 self?.handleReplay(context)
             }
         )
-        navigationBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(navigationBar)
-        NSLayoutConstraint.activate([
-            navigationBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            navigationBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            navigationBar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
-        ])
         #endif
     }
 
@@ -118,26 +94,47 @@ final class GameViewController: UIViewController {
             )
             windowProxy.minSize = targetSize.applying(.init(scaleX: 0.5, y: 0.5))
             self.windowProxy = windowProxy
+
+            let toolbar = ToolbarManager.shared.toolbar(for: window)
+            let toolbarButton = NoSafeAreaHostingView(
+                rootView: ToolbarButton(statusPublisher: boardViewController.$gameStatus) { [weak self] context in
+                    self?.handleReplay(context)
+                }
+            )
+            toolbar.replayButtonView = toolbarButton
         }
     }
+    #endif
 
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
 
-        guard windowProxy != nil, let toolbarHostingView else {
-            return
-        }
-
-        let minToolbarHeight: CGFloat = 52
-        let containerHeight = view.bounds.height
-        toolbarHostingView.frame = .init(
+        let bounds = view.bounds
+        let statusBarHeight = gameStatusBar.intrinsicContentSize.height
+        let safeAreaInsets = view.safeAreaInsets
+        let bottomInsets = safeAreaInsets.bottom
+        #if targetEnvironment(macCatalyst)
+        let topInsets = max(safeAreaInsets.top, ToolbarManager.defaultToolbarHeight)
+        let bottomNavigationBarHeight: CGFloat = 0
+        #else
+        let topInsets = safeAreaInsets.top
+        let bottomNavigationBarHeight = navigationBar.intrinsicContentSize.height
+        navigationBar.frame = .init(
             x: 0,
-            y: containerHeight - minToolbarHeight,
-            width: view.bounds.width,
-            height: minToolbarHeight
+            y: bounds.height - bottomNavigationBarHeight - bottomInsets,
+            width: bounds.width,
+            height: bottomNavigationBarHeight
         )
+        #endif
+        gameStatusBar.frame = .init(x: 0, y: topInsets, width: bounds.width, height: statusBarHeight)
+        boardViewController.view.frame = .init(
+            x: 0,
+            y: gameStatusBar.frame.maxY,
+            width: bounds.width,
+            height: bounds.height - gameStatusBar.frame.maxY - bottomNavigationBarHeight - bottomInsets
+        )
+        .insetBy(dx: 6, dy: 6)
     }
-    #endif
 
     private func handleBackButton() {
         if boardViewController!.gameStatus == .playing {
@@ -149,11 +146,17 @@ final class GameViewController: UIViewController {
                     self?.dismiss(animated: true)
                 }
                 Button(String(localized: "Confirm"), role: .destructive) { [weak self] in
+                    #if targetEnvironment(macCatalyst)
+                    self?.toolbar?.replayButtonView = nil
+                    #endif
                     self?.presentingViewController?.dismiss(animated: true)
                 }
             }
             self.present(alert, animated: true)
         } else {
+            #if targetEnvironment(macCatalyst)
+            toolbar?.replayButtonView = nil
+            #endif
             dismiss(animated: true)
         }
     }
@@ -161,7 +164,7 @@ final class GameViewController: UIViewController {
     @objc private func replay(_ sender: Any) {
         handleReplay(.init { _ in })
     }
-    
+
     private func handleReplay(_ actionContext: ReplayButton.ActionContext) {
         func restartGame() {
             minefield = .init(width: difficulty.width, height: difficulty.height, numberOfMines: difficulty.numberOfMines)
@@ -424,7 +427,6 @@ struct ToolbarButton: View {
         ReplayButton(disabled: isReplayButtonDisabled) { context in
             replayAction(context)
         }
-        .padding(.horizontal, 10)
         .onReceive(statusPublisher) { status in
             withAnimation {
                 isReplayButtonDisabled = status == .idle

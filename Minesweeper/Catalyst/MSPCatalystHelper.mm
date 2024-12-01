@@ -14,7 +14,7 @@
 #import "NSApplication.h"
 #import "MSPWindowProxy+Private.h"
 
-const NSNotificationName MSPNSWindowDidCreateNotificationName = @"MSPNSWindowDidCreateNotification";
+const NSNotificationName MSPNSTitlebarContainerViewVisibilityDidChangeNotificationName = @"MSPNSTitlebarContainerViewVisibilityDidChangeNotification";
 
 MSPWindowProxy *msp_windowProxyForUIWindow(UIWindow *window) {
     if (!window) {

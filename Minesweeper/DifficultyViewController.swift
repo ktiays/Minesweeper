@@ -19,6 +19,14 @@ final class DifficultyViewController: UIViewController {
                 gameViewController.modalPresentationStyle = .fullScreen
                 gameViewController.transitioningDelegate = self
                 self?.present(gameViewController, animated: true)
+                #if targetEnvironment(macCatalyst)
+                if let window = self?.view.window {
+                    DispatchQueue.main.async {
+                        let toolbar = ToolbarManager.shared.toolbar(for: window)
+                        toolbar.updateHierarchy()
+                    }
+                }
+                #endif
             })
         )
         difficultyView.translatesAutoresizingMaskIntoConstraints = false

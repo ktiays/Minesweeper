@@ -10,7 +10,11 @@ NS_ASSUME_NONNULL_BEGIN
 NS_SWIFT_NAME(Toolbar)
 @interface MSPToolbar : UIView
 
-@property (nonatomic, strong) UIView *titleTextField;
+@property (nonatomic, strong, nullable) UIView *titleTextField;
+
+@property (nonatomic, strong, nullable) UIView *replayButtonView;
+
+- (void)updateHierarchy;
 
 @end
 

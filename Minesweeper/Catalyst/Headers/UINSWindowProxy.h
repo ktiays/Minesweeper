@@ -6,7 +6,7 @@
 #ifndef UINSWindowProxy_h
 #define UINSWindowProxy_h
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
 #import "NSWindow.h"
 
@@ -15,6 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface UINSWindowProxy : NSObject
 
 @property (nonatomic, strong) NSWindow *attachedWindow;
+
+- (UIWindow *)uiWindow;
+- (NSArray<UIWindow *> *)uiWindows;
 
 @end
 

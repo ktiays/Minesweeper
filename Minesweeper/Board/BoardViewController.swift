@@ -551,7 +551,6 @@ final class BoardViewController: UIViewController, ObservableObject {
                         if let blurFilter = GaussianBlurFilter() {
                             shapeLayer.filters = [blurFilter.effect]
                         }
-                        view.layer.insertToFront(shapeLayer)
 
                         let animatable: LayerAnimatable = .init(shapeLayer)
                         animatable.update(value: 10, for: \.blurRadius)
@@ -567,31 +566,32 @@ final class BoardViewController: UIViewController, ObservableObject {
                     maybeSymbolLayer.allowsEdgeAntialiasing = true
                     maybeSymbolLayer.contents = imageCache.maybe
 
-                    let topLayer = makeMenuAnimatable()
-                    topLayer.layer.addSublayer(maybeSymbolLayer)
+                    let topAnimatable = makeMenuAnimatable()
+                    topAnimatable.layer.addSublayer(maybeSymbolLayer)
 
-                    let bottomLayer = makeMenuAnimatable()
-                    bottomLayer.layer.addSublayer(flagSymbolLayer)
+                    let bottomAnimatable = makeMenuAnimatable()
+                    bottomAnimatable.layer.addSublayer(flagSymbolLayer)
 
-                    view.layer.insertToFront(layer)
-                    flagMenus[index] = (topLayer, bottomLayer)
+                    flagMenus[index] = (topAnimatable, bottomAnimatable)
 
                     // Make sure the frame of layer is correctly set.
                     view.setNeedsLayout()
                     view.layoutIfNeeded()
 
-                    topLayer.update(value: topLayer.layer.bounds.height * normalLineWidthFactor, for: \.lineWidth)
-                    bottomLayer.update(value: bottomLayer.layer.bounds.height * normalLineWidthFactor, for: \.lineWidth)
+                    topAnimatable.update(value: topAnimatable.layer.bounds.height * normalLineWidthFactor, for: \.lineWidth)
+                    bottomAnimatable.update(value: bottomAnimatable.layer.bounds.height * normalLineWidthFactor, for: \.lineWidth)
                 }
 
-                let (topLayer, bottomLayer) = flagMenus[index]!
+                let (topAnimatable, bottomAnimatable) = flagMenus[index]!
+                view.layer.insertToFront(topAnimatable.layer)
+                view.layer.insertToFront(bottomAnimatable.layer)
                 withLayerAnimation(pathSpring) {
-                    topLayer.update(value: 0, for: \.blurRadius)
-                    topLayer.update(value: topLayer.layer.bounds.height / 2, for: topLayerPathRadiusKey)
-                    topLayer.update(value: 1, for: \.opacity)
-                    bottomLayer.update(value: 0, for: \.blurRadius)
-                    bottomLayer.update(value: bottomLayer.layer.bounds.height / 2, for: bottomLayerPathRadiusKey)
-                    bottomLayer.update(value: 1, for: \.opacity)
+                    topAnimatable.update(value: 0, for: \.blurRadius)
+                    topAnimatable.update(value: topAnimatable.layer.bounds.height / 2, for: topLayerPathRadiusKey)
+                    topAnimatable.update(value: 1, for: \.opacity)
+                    bottomAnimatable.update(value: 0, for: \.blurRadius)
+                    bottomAnimatable.update(value: bottomAnimatable.layer.bounds.height / 2, for: bottomLayerPathRadiusKey)
+                    bottomAnimatable.update(value: 1, for: \.opacity)
                 }
             }
 

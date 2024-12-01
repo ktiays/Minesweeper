@@ -15,7 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 FOUNDATION_EXPORT MSPWindowProxy *msp_windowProxyForUIWindow(UIWindow *window);
 
-FOUNDATION_EXPORT const NSNotificationName MSPNSWindowDidCreateNotificationName;
+FOUNDATION_EXPORT const NSNotificationName MSPNSTitlebarContainerViewVisibilityDidChangeNotificationName;
 
 NS_SWIFT_NAME(CatalystHelper)
 @interface MSPCatalystHelper : NSObject

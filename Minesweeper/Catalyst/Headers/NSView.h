@@ -8,11 +8,14 @@
 
 #import <Foundation/Foundation.h>
 
+@class NSWindow;
+
 @interface NSView : NSObject
 
 @property (nonatomic, assign) NSRect frame;
 @property (nonatomic, readonly) BOOL mouseDownCanMoveWindow;
 @property (nullable, readonly, unsafe_unretained) NSView *superview;
+@property (nullable, readonly, unsafe_unretained) NSWindow *window;
 
 - (void)removeFromSuperview;
 

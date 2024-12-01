@@ -26,15 +26,11 @@ final class AlertViewController: UIViewController {
         super.init(nibName: nil, bundle: nil)
         self.title = title
         self.transitioningDelegate = self
+        self.modalPresentationStyle = .custom
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    override var modalPresentationStyle: UIModalPresentationStyle {
-        get { .overCurrentContext }
-        set {}
     }
 
     override func viewDidLoad() {
@@ -53,7 +49,9 @@ final class AlertViewController: UIViewController {
 
     func layout(in bounds: CGRect) {
         dimmingView.frame = bounds
-
+        
+        let contentTransform = contentView.transform
+        contentView.transform = .identity
         let contentSize = contentView.sizeThatFits(bounds.insetBy(dx: 56, dy: 56).size)
         contentView.frame = .init(
             x: (bounds.width - contentSize.width) / 2,
@@ -61,17 +59,26 @@ final class AlertViewController: UIViewController {
             width: contentSize.width,
             height: contentSize.height
         )
+        contentView.transform = contentTransform
     }
 }
 
 extension AlertViewController: UIViewControllerTransitioningDelegate {
-
+    
     func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> (any UIViewControllerAnimatedTransitioning)? {
         AlertTransitionAnimator(isPresenting: true)
     }
 
     func animationController(forDismissed dismissed: UIViewController) -> (any UIViewControllerAnimatedTransitioning)? {
         AlertTransitionAnimator(isPresenting: false)
+    }
+
+    func presentationController(
+        forPresented presented: UIViewController,
+        presenting: UIViewController?,
+        source: UIViewController
+    ) -> UIPresentationController? {
+        AlertPresentationController(presentedViewController: presented, presenting: presenting)
     }
 }
 

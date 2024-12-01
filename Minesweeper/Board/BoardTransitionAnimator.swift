@@ -24,7 +24,7 @@ final class BoardTransitionAnimator: NSObject, UIViewControllerAnimatedTransitio
         guard let fromView = transitionContext.view(forKey: .from),
             let toView = transitionContext.view(forKey: .to)
         else {
-            transitionContext.completeTransition(true)
+            transitionContext.completeTransition(false)
             return
         }
 

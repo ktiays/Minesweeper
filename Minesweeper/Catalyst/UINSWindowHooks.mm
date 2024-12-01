@@ -25,17 +25,6 @@ static void configureTitlebarAppearsTransparent(void) {
         ((void (*)(id, SEL, BOOL)) impl)(_self, nil, true);
     });
     method_setImplementation(method, newImpl);
-    
-    auto setStyleMaskSelector = sel_registerName("setCollectionBehavior:");
-    auto setStyleMaskImpl = imp_implementationWithBlock(^(NSWindow *window, NSUInteger collectionBehavior) {
-        const auto NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7;
-        if ([window isKindOfClass:NSClassFromString(@"UINSWindow")]) {
-            collectionBehavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
-        }
-        struct objc_super superInfo = {.receiver = window, .super_class = class_getSuperclass([window class])};
-        ((void (*)(struct objc_super *, SEL, NSUInteger)) objc_msgSendSuper)(&superInfo, setStyleMaskSelector, collectionBehavior);
-    });
-    class_addMethod(windowClass, setStyleMaskSelector, setStyleMaskImpl, "v@:Q");
 }
 
 static void configureTitlebarHeight(void) {

@@ -33,11 +33,6 @@ final class AlertTransitionAnimator: NSObject, UIViewControllerAnimatedTransitio
         let alertView = alertController.contentView
         
         if isPresenting {
-            let containerView = transitionContext.containerView
-            containerView.addSubview(dimmingView)
-            containerView.addSubview(alertView)
-            
-            alertController.layout(in: containerView.bounds)
             dimmingView.alpha = 0
             alertView.alpha = 0
             alertView.transform = CGAffineTransform(scaleX: 1.1, y: 1.1)
@@ -50,7 +45,7 @@ final class AlertTransitionAnimator: NSObject, UIViewControllerAnimatedTransitio
             } else {
                 dimmingView.alpha = 0
                 alertView.alpha = 0
-                alertView.transform = CGAffineTransform(scaleX: 1.1, y: 1.1)
+                alertView.transform = CGAffineTransform(scaleX: 1.02, y: 1.02)
             }
         } completion: {
             transitionContext.completeTransition($0)

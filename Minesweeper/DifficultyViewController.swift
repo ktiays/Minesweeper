@@ -16,7 +16,6 @@ final class DifficultyViewController: UIViewController {
         let difficultyView = _UIHostingView(
             rootView: DifficultySelectionView(difficultyDidSelect: { [weak self] item in
                 let gameViewController = GameViewController(difficulty: item)
-                gameViewController.modalPresentationStyle = .fullScreen
                 gameViewController.transitioningDelegate = self
                 self?.present(gameViewController, animated: true)
                 #if targetEnvironment(macCatalyst)

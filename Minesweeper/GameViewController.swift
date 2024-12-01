@@ -34,6 +34,7 @@ final class GameViewController: UIViewController {
         self.difficulty = difficulty
         minefield = .init(width: difficulty.width, height: difficulty.height, numberOfMines: difficulty.numberOfMines)
         super.init(nibName: nil, bundle: nil)
+        self.modalPresentationStyle = .fullScreen
     }
 
     required init?(coder: NSCoder) {

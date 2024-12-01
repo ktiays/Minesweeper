@@ -15,7 +15,6 @@
 #import "NSView.h"
 #import "Minesweeper-Swift.h"
 #import "MSPToolbar.h"
-#import "_UINSView.h"
 
 @interface NSObject (MinesweeperPrivate)
 
@@ -25,6 +24,7 @@
 - (NSAttributedString *)_currentTitleTextFieldAttributedString;
 - (CGRect)_titlebarTitleRect;
 - (CGFloat)_toolbarLeadingSpace;
+- (instancetype)initWithContentNSView:(NSView *)contentNSView;
 
 @end
 
@@ -49,7 +49,7 @@ void prepareUINSApplicationDelegate(void) {
                 manager.leadingSpace = [themeFrame _toolbarLeadingSpace];
                 auto toolbar = [manager toolbarForWindow:window];
                 [window addSubview:toolbar];
-                auto textFieldUIView = [[_UINSView alloc] initWithContentNSView:titleTextField];
+                UIView *textFieldUIView = [[NSClassFromString(@"_UINSView") alloc] initWithContentNSView:titleTextField];
                 toolbar.titleTextField = textFieldUIView;
                 auto size = [themeFrame _titlebarTitleRect].size;
                 textFieldUIView.frame = CGRectMake(0, 0, size.width, size.height);

@@ -83,16 +83,18 @@ final class GameViewController: UIViewController {
             let windowFrame = windowProxy.frame
             let center = windowFrame.center
             let targetSize = difficulty.minSize
-            windowProxy.setFrame(
-                .init(
-                    x: center.x - targetSize.width / 2,
-                    y: center.y - targetSize.height / 2,
-                    width: targetSize.width,
-                    height: targetSize.height
-                ),
-                display: true,
-                animate: true
-            )
+            if !windowProxy.isFullScreen {
+                windowProxy.setFrame(
+                    .init(
+                        x: center.x - targetSize.width / 2,
+                        y: center.y - targetSize.height / 2,
+                        width: targetSize.width,
+                        height: targetSize.height
+                    ),
+                    display: true,
+                    animate: true
+                )
+            }
             windowProxy.minSize = targetSize.applying(.init(scaleX: 0.5, y: 0.5))
             self.windowProxy = windowProxy
 

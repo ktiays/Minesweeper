@@ -42,6 +42,8 @@ typedef NS_OPTIONS(NSUInteger, NSWindowStyleMask) {
 @property (nonatomic, strong) NSView *contentView;
 @property (nonatomic, strong) NSViewController *contentViewController;
 
+@property (nonatomic, assign) NSWindowStyleMask styleMask;
+
 + (instancetype)_windowWithContentViewController:(NSViewController *)viewController styleMask:(NSWindowStyleMask)styleMask;
 - (instancetype)animator;
 

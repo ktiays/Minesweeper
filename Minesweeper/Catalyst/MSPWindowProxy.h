@@ -30,6 +30,8 @@ NS_SWIFT_NAME(WindowProxy)
 
 @property (nonatomic, strong, nullable) MSPViewProxy *contentView;
 
+@property (nonatomic, assign) BOOL isFullScreen;
+
 /// Sets the origin and size of the window's frame rectangle, with optional animation, according to a given frame rectangle,
 /// thereby setting its position and size onscreen.
 ///

@@ -63,6 +63,10 @@
     return [MSPViewProxy proxyWithNSView:_window.contentView];
 }
 
+- (BOOL)isFullScreen {
+    return _window.styleMask & NSWindowStyleMaskFullScreen;
+}
+
 @end
 
 #endif

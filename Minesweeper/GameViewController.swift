@@ -35,6 +35,7 @@ final class GameViewController: UIViewController {
         minefield = .init(width: difficulty.width, height: difficulty.height, numberOfMines: difficulty.numberOfMines)
         super.init(nibName: nil, bundle: nil)
         self.modalPresentationStyle = .fullScreen
+        self.transitioningDelegate = self
     }
 
     required init?(coder: NSCoder) {
@@ -195,6 +196,21 @@ final class GameViewController: UIViewController {
             restartGame()
             actionContext(true)
         }
+    }
+}
+
+extension GameViewController: UIViewControllerTransitioningDelegate {
+    
+    func animationController(
+        forPresented presented: UIViewController,
+        presenting: UIViewController,
+        source: UIViewController
+    ) -> (any UIViewControllerAnimatedTransitioning)? {
+        BoardTransitionAnimator(isPresenting: true)
+    }
+
+    func animationController(forDismissed dismissed: UIViewController) -> (any UIViewControllerAnimatedTransitioning)? {
+        BoardTransitionAnimator(isPresenting: false)
     }
 }
 

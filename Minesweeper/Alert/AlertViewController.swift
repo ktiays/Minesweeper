@@ -9,13 +9,18 @@ import UIKit
 final class AlertViewController: UIViewController {
 
     let dimmingView: UIView = .init()
-    private(set) lazy var contentView: _UIHostingView<AlertContentView> = .init(
+    private lazy var contentViewController: UIHostingController<AlertContentView> = .init(
         rootView: .init(
             title: title,
             message: message,
-            content: content
+            content: content,
+            customMode: customMode
         )
     )
+    var contentView: UIView {
+        contentViewController.view
+    }
+    var customMode: Bool = false
 
     let message: String?
     private let content: AnyView
@@ -37,8 +42,14 @@ final class AlertViewController: UIViewController {
         super.viewDidLoad()
 
         dimmingView.backgroundColor = .black
+        contentView.backgroundColor = .clear
         view.addSubview(dimmingView)
+        addChild(contentViewController)
         view.addSubview(contentView)
+        contentViewController.didMove(toParent: self)
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDimmingViewTap(_:)))
+        dimmingView.addGestureRecognizer(tapGesture)
     }
 
     override func viewWillLayoutSubviews() {
@@ -52,7 +63,10 @@ final class AlertViewController: UIViewController {
         
         let contentTransform = contentView.transform
         contentView.transform = .identity
-        let contentSize = contentView.sizeThatFits(bounds.insetBy(dx: 56, dy: 56).size)
+        let maxWidth: CGFloat = 300
+        var containerSize = bounds.insetBy(dx: 56, dy: 56).size
+        containerSize.width = min(containerSize.width, maxWidth)
+        let contentSize = contentView.sizeThatFits(containerSize)
         contentView.frame = .init(
             x: (bounds.width - contentSize.width) / 2,
             y: (bounds.height - contentSize.height) / 2,
@@ -60,6 +74,11 @@ final class AlertViewController: UIViewController {
             height: contentSize.height
         )
         contentView.transform = contentTransform
+    }
+    
+    @objc
+    private func handleDimmingViewTap(_ sender: UITapGestureRecognizer) {
+        view.endEditing(true)
     }
 }
 
@@ -87,11 +106,13 @@ struct AlertContentView: View {
     let title: String?
     let message: String?
     private let content: AnyView
+    private let customMode: Bool
 
-    init(title: String? = nil, message: String? = nil, content: AnyView) {
+    init(title: String? = nil, message: String? = nil, content: AnyView, customMode: Bool) {
         self.title = title
         self.message = message
         self.content = content
+        self.customMode = customMode
     }
 
     var body: some View {
@@ -111,8 +132,12 @@ struct AlertContentView: View {
             .padding(.horizontal, 16)
             .padding(.top, 18)
             HStack {
-                LazyVGrid(columns: [.init(.flexible()), .init(.flexible())]) {
+                if customMode {
                     content
+                } else {
+                    LazyVGrid(columns: [.init(.flexible()), .init(.flexible())]) {
+                        content
+                    }
                 }
             }
             .buttonStyle(AlertButtonStyle())

@@ -15,27 +15,46 @@ final class DifficultyViewController: UIViewController {
 
         let difficultyView = _UIHostingView(
             rootView: DifficultySelectionView(difficultyDidSelect: { [weak self] item in
-                let gameViewController = GameViewController(difficulty: item)
-                gameViewController.transitioningDelegate = self
-                self?.present(gameViewController, animated: true)
-                #if targetEnvironment(macCatalyst)
-                if let window = self?.view.window {
-                    DispatchQueue.main.async {
-                        let toolbar = ToolbarManager.shared.toolbar(for: window)
-                        toolbar.updateHierarchy()
+                if item.id == .custom {
+                    let alertController = AlertViewController(
+                        title: String(localized: "Custom Level"),
+                        message: String(localized: "Set the width, height, and number of mines for the custom level.")
+                    ) { [weak self] in
+                        CustomAlertContent {
+                            self?.dismiss(animated: true)
+                        } confirm: { difficulty in
+                            self?.dismiss(animated: true)
+                            self?.startGame(with: difficulty)
+                        }
                     }
+                    alertController.customMode = true
+                    self?.present(alertController, animated: true)
+                } else {
+                    self?.startGame(with: item)
                 }
-                #endif
             })
         )
         difficultyView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(difficultyView)
         NSLayoutConstraint.activate([
-            difficultyView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            difficultyView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            difficultyView.widthAnchor.constraint(greaterThanOrEqualToConstant: 300),
-            difficultyView.heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
+            difficultyView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            difficultyView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            difficultyView.topAnchor.constraint(equalTo: view.topAnchor),
+            difficultyView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+
+    private func startGame(with difficulty: DifficultyItem) {
+        let gameViewController = GameViewController(difficulty: difficulty)
+        present(gameViewController, animated: true)
+        #if targetEnvironment(macCatalyst)
+        if let window = view.window {
+            DispatchQueue.main.async {
+                let toolbar = ToolbarManager.shared.toolbar(for: window)
+                toolbar.updateHierarchy()
+            }
+        }
+        #endif
     }
 }
 
@@ -83,16 +102,28 @@ struct DifficultyItem: Identifiable, Hashable {
     }
 }
 
-private let difficulties: [Difficulty: DifficultyItem] = [
-    .beginner: .init(difficulty: .beginner, width: 9, height: 9, numberOfMines: 10, minSize: .init(width: 500, height: 600)),
-    .intermediate: .init(difficulty: .intermediate, width: 16, height: 16, numberOfMines: 40, minSize: .init(width: 680, height: 760)),
-    .expert: .init(difficulty: .expert, width: 30, height: 16, numberOfMines: 99, minSize: .init(width: 1300, height: 800)),
-    .custom: .init(difficulty: .custom, width: 0, height: 0, numberOfMines: 0, minSize: .zero),
-]
+func configureDifficulties() -> [Difficulty: DifficultyItem] {
+    if UIDevice.current.userInterfaceIdiom == .phone {
+        [
+            .beginner: .init(difficulty: .beginner, width: 8, height: 8, numberOfMines: 8, minSize: .zero),
+            .intermediate: .init(difficulty: .intermediate, width: 9, height: 9, numberOfMines: 10, minSize: .init(width: 680, height: 760)),
+            .expert: .init(difficulty: .expert, width: 9, height: 16, numberOfMines: 30, minSize: .zero),
+            .custom: .init(difficulty: .custom, width: 0, height: 0, numberOfMines: 0, minSize: .zero),
+        ]
+    } else {
+        [
+            .beginner: .init(difficulty: .beginner, width: 9, height: 9, numberOfMines: 10, minSize: .init(width: 500, height: 600)),
+            .intermediate: .init(difficulty: .intermediate, width: 16, height: 16, numberOfMines: 40, minSize: .init(width: 680, height: 760)),
+            .expert: .init(difficulty: .expert, width: 30, height: 16, numberOfMines: 99, minSize: .init(width: 1300, height: 800)),
+            .custom: .init(difficulty: .custom, width: 0, height: 0, numberOfMines: 0, minSize: .zero),
+        ]
+    }
+}
 
 private struct DifficultySelectionView: View {
 
     let difficultyDidSelect: (DifficultyItem) -> Void
+    private let difficulties = configureDifficulties()
 
     init(difficultyDidSelect: @escaping (DifficultyItem) -> Void) {
         self.difficultyDidSelect = difficultyDidSelect
@@ -112,6 +143,7 @@ private struct DifficultySelectionView: View {
             }
         }
         .padding()
+        .frame(height: 500)
         .onChange(of: selectedDifficulty) { oldValue, newValue in
             guard let newValue else { return }
             difficultyDidSelect(newValue)
@@ -152,17 +184,114 @@ private struct DifficultyView: View {
     }
 }
 
-extension DifficultyViewController: UIViewControllerTransitioningDelegate {
+private struct CustomAlertContent: View {
 
-    func animationController(
-        forPresented presented: UIViewController,
-        presenting: UIViewController,
-        source: UIViewController
-    ) -> (any UIViewControllerAnimatedTransitioning)? {
-        BoardTransitionAnimator(isPresenting: true)
+    private let cancelAction: () -> Void
+    private let confirmAction: (DifficultyItem) -> Void
+
+    init(cancel: @escaping () -> Void, confirm: @escaping (DifficultyItem) -> Void) {
+        self.cancelAction = cancel
+        self.confirmAction = confirm
     }
 
-    func animationController(forDismissed dismissed: UIViewController) -> (any UIViewControllerAnimatedTransitioning)? {
-        BoardTransitionAnimator(isPresenting: false)
+    private enum FocusedField: Equatable {
+        case width
+        case height
+        case numberOfMines
+    }
+
+    private static let boardMinWidth: Int = 3
+    private static let boardMaxWidth: Int = 50
+    private static let boardMinHeight: Int = 3
+    private static let boardMaxHeight: Int = 50
+    private static let minesMinCount: Int = 1
+    @State private var width: Int = Self.boardMinWidth
+    @State private var height: Int = Self.boardMinHeight
+    @State private var numberOfMines: Int = Self.minesMinCount
+
+    @FocusState private var focusedField: FocusedField?
+
+    var body: some View {
+        let textFieldWidth: CGFloat = 40
+        let textFieldVerticalPadding: CGFloat = 10
+        VStack(spacing: 16) {
+            Grid(horizontalSpacing: 12, verticalSpacing: 8) {
+                GridRow {
+                    TextField(String(), value: $width, formatter: NumberFormatter())
+                        .focused($focusedField, equals: .width)
+                        .frame(width: textFieldWidth)
+                        .padding(.vertical, textFieldVerticalPadding)
+                        .background {
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .strokeBorder()
+                                .opacity(0.3)
+                        }
+                    Image(systemName: "multiply")
+                    TextField(String(), value: $height, formatter: NumberFormatter())
+                        .focused($focusedField, equals: .height)
+                        .frame(width: textFieldWidth)
+                        .padding(.vertical, textFieldVerticalPadding)
+                        .background {
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .strokeBorder()
+                                .opacity(0.3)
+                        }
+                }
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+
+                GridRow {
+                    Text("Width")
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                    Text("Height")
+                }
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+            }
+            VStack(spacing: 8) {
+                TextField(String(), value: $numberOfMines, formatter: NumberFormatter())
+                    .focused($focusedField, equals: .numberOfMines)
+                    .frame(width: textFieldWidth)
+                    .padding(.vertical, textFieldVerticalPadding)
+                    .background {
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .strokeBorder()
+                            .opacity(0.3)
+                    }
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                Text("Mines")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+            }
+            HStack {
+                Button("Cancel") {
+                    cancelAction()
+                }
+                Button("Start", role: .destructive) {
+                    let item = DifficultyItem(difficulty: .custom, width: width, height: height, numberOfMines: numberOfMines, minSize: .zero)
+                    confirmAction(item)
+                }
+            }
+        }
+        .multilineTextAlignment(.center)
+        .keyboardType(.numberPad)
+        .onChange(of: focusedField) { _, newValue in
+            if newValue != .width && (width < Self.boardMinWidth || width > Self.boardMaxWidth) {
+                width = min(max(width, Self.boardMinWidth), Self.boardMaxWidth)
+            }
+            if newValue != .height && (height < Self.boardMinHeight || height > Self.boardMaxHeight) {
+                height = min(max(height, Self.boardMinHeight), Self.boardMaxHeight)
+            }
+            let maxMines = min(width * height - 1, 999)
+            if newValue != .numberOfMines && (numberOfMines < Self.minesMinCount || numberOfMines > maxMines) {
+                numberOfMines = min(max(numberOfMines, Self.minesMinCount), maxMines)
+            }
+        }
+    }
+}
+
+#Preview {
+    CustomAlertContent {
+
+    } confirm: { _ in
+
     }
 }

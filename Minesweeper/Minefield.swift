@@ -142,10 +142,12 @@ public final class Minefield {
         let neighbours = self.neighbour(of: position)
 
         var mines: [Bool] = Array(repeating: true, count: numberOfMines)
-        mines.append(contentsOf: Array(repeating: false, count: width * height - numberOfMines - neighbours.count - 1))
+        let resetSlots = width * height - numberOfMines - 1
+        let avoidNeighbours = resetSlots >= neighbours.count
+        mines.append(contentsOf: Array(repeating: false, count: avoidNeighbours ? (resetSlots - neighbours.count) : resetSlots))
         mines.shuffle()
 
-        var avoidings = neighbours.map({ $0.y * width + $0.x })
+        var avoidings: [Int] = avoidNeighbours ? neighbours.map { $0.y * width + $0.x } : []
         avoidings.append(position.y * width + position.x)
         avoidings.sort()
         for i in avoidings {

@@ -142,7 +142,8 @@ final class ConfettiViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        view.isUserInteractionEnabled = false
+        
         view.layer.addSublayer(bottomLeftLayer)
         view.layer.addSublayer(bottomRightLayer)
     }

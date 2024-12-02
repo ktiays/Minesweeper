@@ -51,6 +51,16 @@
         }
       }
     },
+    "Custom Level" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义等级"
+          }
+        }
+      }
+    },
     "Exit Game" : {
       "localizations" : {
         "zh-Hans" : {
@@ -71,12 +81,32 @@
         }
       }
     },
+    "Height" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
+          }
+        }
+      }
+    },
     "Intermediate" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "中级"
+          }
+        }
+      }
+    },
+    "Mines" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地雷数"
           }
         }
       }
@@ -97,6 +127,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新开始游戏"
+          }
+        }
+      }
+    },
+    "Set the width, height, and number of mines for the custom level." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请设置自定义的棋盘宽高和地雷数量。"
+          }
+        }
+      }
+    },
+    "Start" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始"
+          }
+        }
+      }
+    },
+    "Width" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宽"
           }
         }
       }

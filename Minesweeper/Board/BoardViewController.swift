@@ -74,7 +74,7 @@ final class BoardViewController: UIViewController, ObservableObject {
     }
 
     private(set) var minefield: Minefield
-    var spacing: CGFloat = 4 {
+    var spacingRatio: CGFloat = 0.1 {
         didSet {
             view.setNeedsLayout()
         }
@@ -199,6 +199,7 @@ final class BoardViewController: UIViewController, ObservableObject {
         let width = minefield.width
         let height = minefield.height
 
+        let spacing = length * spacingRatio
         let boardWidth = CGFloat(width) * length + spacing * CGFloat(width + 1)
         let boardHeight = CGFloat(height) * length + spacing * CGFloat(height + 1)
 
@@ -333,13 +334,14 @@ final class BoardViewController: UIViewController, ObservableObject {
         let width = minefield.width
         let height = minefield.height
 
-        let widthSpecified = (size.width - spacing * CGFloat(width + 1)) / CGFloat(width)
-        let heightSpecified = (size.height - spacing * CGFloat(height + 1)) / CGFloat(height)
-        return if size.width / size.height > CGFloat(width) / CGFloat(height) {
+        let widthSpecified = size.width / (CGFloat(width - 1) * spacingRatio + CGFloat(width))
+        let heightSpecified = size.height / (CGFloat(height - 1) * spacingRatio + CGFloat(height))
+        let length = if size.width / size.height > CGFloat(width) / CGFloat(height) {
             heightSpecified
         } else {
             widthSpecified
         }
+        return min(length, 60)
     }
 
     private func frame(at index: Int) -> CGRect {
@@ -354,6 +356,7 @@ final class BoardViewController: UIViewController, ObservableObject {
             x: point.x - contentRect.minX,
             y: point.y - contentRect.minY
         )
+        let spacing = layoutCache.cellLength * spacingRatio
         let x = Int(location.x / (layoutCache.cellLength + spacing))
         let y = Int(location.y / (layoutCache.cellLength + spacing))
         if x < 0 || x >= minefield.width || y < 0 || y >= minefield.height {
@@ -370,6 +373,7 @@ final class BoardViewController: UIViewController, ObservableObject {
 
     private func frame(at position: Minefield.Position) -> CGRect {
         let length = layoutCache.cellLength
+        let spacing = length * spacingRatio
         return .init(
             x: CGFloat(position.x) * (length + spacing) + spacing,
             y: CGFloat(position.y) * (length + spacing) + spacing,
@@ -585,6 +589,7 @@ final class BoardViewController: UIViewController, ObservableObject {
                 let (topAnimatable, bottomAnimatable) = flagMenus[index]!
                 view.layer.insertToFront(topAnimatable.layer)
                 view.layer.insertToFront(bottomAnimatable.layer)
+                view.layer.insertToFront(layer)
                 withLayerAnimation(pathSpring) {
                     topAnimatable.update(value: 0, for: \.blurRadius)
                     topAnimatable.update(value: topAnimatable.layer.bounds.height / 2, for: topLayerPathRadiusKey)

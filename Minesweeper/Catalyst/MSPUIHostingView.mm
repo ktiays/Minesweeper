@@ -8,6 +8,7 @@
 #if TARGET_OS_MACCATALYST
 
 #import <objc/runtime.h>
+#import <objc/message.h>
 
 #import "MSPUIHostingView.h"
 #import "NSView.h"
@@ -26,7 +27,6 @@
         
         auto newClassName = [NSString stringWithFormat:@"%@_%p", className, self];
         auto newClass = objc_allocateClassPair(viewClass, newClassName.UTF8String, 0);
-        NSLog(@"newClass: %@", newClass);
         objc_registerClassPair(newClass);
         object_setClass(_hostingView, newClass);
         
@@ -48,7 +48,7 @@
     return uiView.intrinsicContentSize;
 }
 
-- (id)hostingView {
+- (id)hostingNSView {
     return _hostingView;
 }
 

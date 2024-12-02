@@ -26,6 +26,7 @@ final class GameViewController: UIViewController {
         }
         return nil
     }
+    private var popUpMenus: [MenuWindow] = []
     #else
     private var navigationBar: _UIHostingView<NavigationBar>!
     #endif
@@ -84,19 +85,19 @@ final class GameViewController: UIViewController {
             let windowFrame = windowProxy.frame
             let center = windowFrame.center
             let targetSize = difficulty.minSize
-            if !windowProxy.isFullScreen {
-                windowProxy.setFrame(
-                    .init(
+            if targetSize != .zero {
+                if !windowProxy.isFullScreen {
+                    let frame = CGRect(
                         x: center.x - targetSize.width / 2,
                         y: center.y - targetSize.height / 2,
                         width: targetSize.width,
                         height: targetSize.height
-                    ),
-                    display: true,
-                    animate: true
-                )
+                    )
+                    let screenFrame = windowProxy.screenVisibleFrame
+                    windowProxy.setFrame(adjustRect(frame, boundedBy: screenFrame), display: true, animate: true)
+                }
+                windowProxy.minSize = targetSize.applying(.init(scaleX: 0.5, y: 0.5))
             }
-            windowProxy.minSize = targetSize.applying(.init(scaleX: 0.5, y: 0.5))
             self.windowProxy = windowProxy
 
             let toolbar = ToolbarManager.shared.toolbar(for: window)
@@ -139,9 +140,44 @@ final class GameViewController: UIViewController {
         )
         .insetBy(dx: 6, dy: 6)
     }
-
+    
+    private func closeAllMenus() {
+        popUpMenus.forEach { $0.close() }
+    }
+    
     private func handleBackButton() {
         if boardViewController!.gameStatus == .playing {
+            #if targetEnvironment(macCatalyst)
+            if let window = view.window {
+                let menuViewController = UIHostingController(
+                    rootView: SingleButtonMenu(
+                        buttonContent: .init(
+                            image: Image(systemName: "arrow.left"),
+                            text: "Exit Game"
+                        ),
+                        message: "Your game is not finished yet, do you want to end and exit?",
+                        action: { [weak self] in
+                            self?.toolbar?.replayButtonView = nil
+                            self?.closeAllMenus()
+                            self?.presentingViewController?.dismiss(animated: true)
+                        }
+                    )
+                )
+                menuViewController.view.backgroundColor = .clear
+                let menuWindow = MenuWindow(contentViewController: menuViewController)
+                let statusBarOrigin = gameStatusBar.frame.origin
+                menuWindow.popUp(
+                    from: .init(
+                        x: statusBarOrigin.x + 12,
+                        y: statusBarOrigin.y + 5,
+                        width: 30,
+                        height: 30
+                    ),
+                    in: window
+                )
+                popUpMenus.append(menuWindow)
+            }
+            #else
             let alert = AlertViewController(
                 title: String(localized: "Exit Game"),
                 message: String(localized: "Your game is not finished yet, do you want to end and exit?")
@@ -150,13 +186,11 @@ final class GameViewController: UIViewController {
                     self?.dismiss(animated: true)
                 }
                 Button(String(localized: "Confirm"), role: .destructive) { [weak self] in
-                    #if targetEnvironment(macCatalyst)
-                    self?.toolbar?.replayButtonView = nil
-                    #endif
                     self?.presentingViewController?.dismiss(animated: true)
                 }
             }
             self.present(alert, animated: true)
+            #endif
         } else {
             #if targetEnvironment(macCatalyst)
             toolbar?.replayButtonView = nil
@@ -175,6 +209,37 @@ final class GameViewController: UIViewController {
             boardViewController.reset(with: minefield)
         }
         if boardViewController!.gameStatus == .playing {
+            #if targetEnvironment(macCatalyst)
+            if let window = view.window {
+                let menuViewController = UIHostingController(
+                    rootView: SingleButtonMenu(
+                        buttonContent: .init(
+                            image: Image(systemName: "arrow.clockwise"),
+                            text: "Restart Game"
+                        ),
+                        message: "Are you sure you want to restart the game? All progress will be lost.",
+                        action: { [weak self] in
+                            restartGame()
+                            actionContext(true)
+                            self?.closeAllMenus()
+                        }
+                    )
+                )
+                menuViewController.view.backgroundColor = .clear
+                let menuWindow = MenuWindow(contentViewController: menuViewController)
+                let toolbarFrame = toolbar?.frame ?? .init(origin: .zero, size: .init(width: window.bounds.width, height: 52))
+                menuWindow.popUp(
+                    from: .init(
+                        x: toolbarFrame.maxX - 42,
+                        y: toolbarFrame.minY + 11,
+                        width: 30,
+                        height: 30
+                    ),
+                    in: window
+                )
+                popUpMenus.append(menuWindow)
+            }
+            #else
             let alert = AlertViewController(
                 title: String(localized: "Restart Game"),
                 message: String(localized: "Are you sure you want to restart the game? All progress will be lost.")
@@ -192,6 +257,7 @@ final class GameViewController: UIViewController {
             }
             alert.transitioningDelegate = alert
             self.present(alert, animated: true)
+            #endif
         } else {
             restartGame()
             actionContext(true)
@@ -200,7 +266,7 @@ final class GameViewController: UIViewController {
 }
 
 extension GameViewController: UIViewControllerTransitioningDelegate {
-    
+
     func animationController(
         forPresented presented: UIViewController,
         presenting: UIViewController,

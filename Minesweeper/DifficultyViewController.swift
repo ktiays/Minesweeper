@@ -23,8 +23,9 @@ final class DifficultyViewController: UIViewController {
                         CustomAlertContent {
                             self?.dismiss(animated: true)
                         } confirm: { difficulty in
-                            self?.dismiss(animated: true)
-                            self?.startGame(with: difficulty)
+                            self?.dismiss(animated: true) {
+                                self?.startGame(with: difficulty)
+                            }
                         }
                     }
                     alertController.customMode = true
@@ -105,9 +106,9 @@ struct DifficultyItem: Identifiable, Hashable {
 func configureDifficulties() -> [Difficulty: DifficultyItem] {
     if UIDevice.current.userInterfaceIdiom == .phone {
         [
-            .beginner: .init(difficulty: .beginner, width: 8, height: 8, numberOfMines: 8, minSize: .zero),
-            .intermediate: .init(difficulty: .intermediate, width: 9, height: 9, numberOfMines: 10, minSize: .init(width: 680, height: 760)),
-            .expert: .init(difficulty: .expert, width: 9, height: 16, numberOfMines: 30, minSize: .zero),
+            .beginner: .init(difficulty: .beginner, width: 9, height: 9, numberOfMines: 10, minSize: .zero),
+            .intermediate: .init(difficulty: .intermediate, width: 9, height: 16, numberOfMines: 30, minSize: .zero),
+            .expert: .init(difficulty: .expert, width: 18, height: 32, numberOfMines: 99, minSize: .zero),
             .custom: .init(difficulty: .custom, width: 0, height: 0, numberOfMines: 0, minSize: .zero),
         ]
     } else {
@@ -201,10 +202,16 @@ private struct CustomAlertContent: View {
     }
 
     private static let boardMinWidth: Int = 3
-    private static let boardMaxWidth: Int = 50
     private static let boardMinHeight: Int = 3
+    #if targetEnvironment(macCatalyst)
+    private static let boardMaxWidth: Int = 99
+    private static let boardMaxHeight: Int = 99
+    #else
+    private static let boardMaxWidth: Int = 50
     private static let boardMaxHeight: Int = 50
+    #endif
     private static let minesMinCount: Int = 1
+    
     @State private var width: Int = Self.boardMinWidth
     @State private var height: Int = Self.boardMinHeight
     @State private var numberOfMines: Int = Self.minesMinCount

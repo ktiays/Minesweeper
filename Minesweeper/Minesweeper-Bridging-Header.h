@@ -6,3 +6,4 @@
 #import "MSPCatalystHelper.h"
 #import "MSPUIHostingView.h"
 #import "MSPToolbar.h"
+#import "MSPMenuWindow.h"

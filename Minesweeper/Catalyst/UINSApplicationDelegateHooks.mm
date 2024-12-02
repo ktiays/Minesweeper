@@ -42,6 +42,9 @@ void prepareUINSApplicationDelegate(void) {
                 auto windowProxy = msp_windowProxyForUIWindow(window);
                 auto nsWindow = windowProxy->_window;
                 auto themeFrame = nsWindow.contentView.superview;
+                if (![themeFrame isKindOfClass:NSClassFromString(@"NSThemeFrame")]) {
+                    return;
+                }
                 auto titleTextField = [themeFrame _titleTextField];
                 [titleTextField removeFromSuperview];
                 

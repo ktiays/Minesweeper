@@ -11,6 +11,7 @@
 
 #import "MSPWindowProxy+Private.h"
 #import "MSPViewProxy+Private.h"
+#import "NSScreen.h"
 
 @implementation MSPWindowProxy
 
@@ -65,6 +66,10 @@
 
 - (BOOL)isFullScreen {
     return _window.styleMask & NSWindowStyleMaskFullScreen;
+}
+
+- (CGRect)screenVisibleFrame {
+    return _window.screen.visibleFrame;
 }
 
 @end

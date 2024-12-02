@@ -22,6 +22,7 @@ NS_SWIFT_NAME(WindowProxy)
 
 /// The window's frame rectangle in screen coordinates, including the title bar.
 @property (nonatomic, assign, readonly) CGRect frame;
+@property (nonatomic, assign, readonly) CGRect screenVisibleFrame;
 
 /// The window's toolbar.
 @property (nonatomic, strong) NSToolbar *toolbar;

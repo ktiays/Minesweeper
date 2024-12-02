@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface MSPUIHostingView : NSObject
 
-@property (nonatomic, readonly) id hostingView;
+@property (nonatomic, readonly) id hostingNSView;
 @property (nonatomic, readonly) CGSize intrinsicContentSize;
 @property (nonatomic, assign) CGRect frame;
 

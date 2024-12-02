@@ -30,7 +30,7 @@
 
 - (void)addSubview:(id)view {
     if ([view isKindOfClass:[MSPUIHostingView class]]) {
-        [(id) _view addSubview:[(MSPUIHostingView *) view hostingView]];
+        [(id) _view addSubview:[(MSPUIHostingView *) view hostingNSView]];
     } else if ([view isKindOfClass:[MSPViewProxy class]]) {
         [(id) _view addSubview:((MSPViewProxy *) view)->_view];
     } else {

@@ -73,7 +73,7 @@ public final class Minefield {
 
     private(set) var numberOfCleared: Int = 0
     private(set) var numberOfFlagged: Int = 0
-    private var isPlacedMines: Bool = false
+    private(set) var isPlacedMines: Bool = false
 
     public private(set) var isExploded: Bool = false
 
@@ -211,17 +211,17 @@ public final class Minefield {
         if isExploded || isCompleted {
             return
         }
+        
+        let location = location(at: position)
+        if location.isCleared || location.flag == .flag {
+            return
+        }
 
         // Place mines on first attempt to clear.
         if !isPlacedMines {
             logger.info("New game started at \(position)")
             placeMine(avoiding: position)
             isPlacedMines = true
-        }
-
-        let location = location(at: position)
-        if location.isCleared || location.flag == .flag {
-            return
         }
 
         logger.info("Clearing \(position)")

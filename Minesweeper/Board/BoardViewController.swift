@@ -772,7 +772,7 @@ final class BoardViewController: UIViewController, ObservableObject {
             minefield.clearMine(at: position)
             needsUpdate = true
 
-            if gameStatus == .idle {
+            if gameStatus == .idle && minefield.isPlacedMines {
                 gameStatus = .playing
             }
         }

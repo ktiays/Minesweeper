@@ -144,7 +144,7 @@ private struct DifficultySelectionView: View {
             }
         }
         .padding()
-        .frame(height: 500)
+        .frame(maxWidth: 500, maxHeight: 500)
         .onChange(of: selectedDifficulty) { oldValue, newValue in
             guard let newValue else { return }
             difficultyDidSelect(newValue)
@@ -292,13 +292,5 @@ private struct CustomAlertContent: View {
                 numberOfMines = min(max(numberOfMines, Self.minesMinCount), maxMines)
             }
         }
-    }
-}
-
-#Preview {
-    CustomAlertContent {
-
-    } confirm: { _ in
-
     }
 }

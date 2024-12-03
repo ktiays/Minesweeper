@@ -54,6 +54,8 @@ struct SingleButtonMenu: View {
             }
             
             Divider()
+                .padding(.horizontal, 8)
+                .opacity(0.3)
 
             Text(message)
                 .foregroundStyle(.secondary)

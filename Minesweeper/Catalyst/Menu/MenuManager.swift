@@ -1,7 +1,9 @@
 //
 //  Created by ktiays on 2024/12/2.
 //  Copyright (c) 2024 ktiays. All rights reserved.
-// 
+//
+
+#if targetEnvironment(macCatalyst)
 
 import Foundation
 
@@ -23,3 +25,5 @@ final class MenuManager: NSObject {
         menuWindows.remove(menuWindow)
     }
 }
+
+#endif

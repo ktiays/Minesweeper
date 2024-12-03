@@ -4,6 +4,9 @@
 // 
 
 #import <UIKit/UIKit.h>
+#import <TargetConditionals.h>
+
+#if TARGET_OS_MACCATALYST
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -20,3 +23,5 @@ NS_SWIFT_NAME(MenuWindow)
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif

@@ -141,9 +141,11 @@ final class GameViewController: UIViewController {
         .insetBy(dx: 6, dy: 6)
     }
     
+    #if targetEnvironment(macCatalyst)
     private func closeAllMenus() {
         popUpMenus.forEach { $0.close() }
     }
+    #endif
     
     private func handleBackButton() {
         if boardViewController!.gameStatus == .playing {

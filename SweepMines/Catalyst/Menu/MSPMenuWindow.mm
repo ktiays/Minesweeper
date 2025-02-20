@@ -14,7 +14,7 @@
 #import "MSPMenuWindow.h"
 #import "MSPUIHostingView.h"
 #import "MSPWindowProxy+Private.h"
-#import "Minesweeper-Swift.h"
+#import "SweepMines-Swift.h"
 #import "NSAnimationContext.h"
 #import "NSEvent.h"
 #import "NSView.h"

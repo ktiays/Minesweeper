@@ -9,7 +9,7 @@
 
 #import <UIKit/UIKit.h>
 #import "MSPToolbar.h"
-#import "Minesweeper-Swift.h"
+#import "SweepMines-Swift.h"
 #import "NSApplication.h"
 
 @implementation MSPToolbar {

@@ -12,7 +12,7 @@
 #import <objc/runtime.h>
 
 #import "MSPToolbar.h"
-#import "Minesweeper-Swift.h"
+#import "SweepMines-Swift.h"
 #import "NSView.h"
 #import "UINSWindowHooks.h"
 #import "MSPCatalystHelper.h"

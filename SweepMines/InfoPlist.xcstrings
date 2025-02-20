@@ -26,12 +26,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Minesweeper"
+            "value" : "SweepMines"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "扫个雷"
           }
         }

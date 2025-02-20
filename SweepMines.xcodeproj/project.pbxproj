@@ -7,58 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		ED8C8D602CDC62A50030DEEC /* With in Frameworks */ = {isa = PBXBuildFile; productRef = ED8C8D5F2CDC62A50030DEEC /* With */; };
+		EDDD62682D663B8900779A32 /* With in Frameworks */ = {isa = PBXBuildFile; productRef = EDDD62672D663B8900779A32 /* With */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		ED8C8D432CDC62850030DEEC /* Minesweeper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Minesweeper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EDDD61362D66389F00779A32 /* SweepMines.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SweepMines.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		ED8C8D552CDC62860030DEEC /* Exceptions for "Minesweeper" folder in "Minesweeper" target */ = {
+		EDDD61482D6638A000779A32 /* Exceptions for "SweepMines" folder in "SweepMines" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = ED8C8D422CDC62850030DEEC /* Minesweeper */;
+			target = EDDD61352D66389F00779A32 /* SweepMines */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		ED8C8D452CDC62850030DEEC /* Minesweeper */ = {
+		EDDD61382D66389F00779A32 /* SweepMines */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				ED8C8D552CDC62860030DEEC /* Exceptions for "Minesweeper" folder in "Minesweeper" target */,
+				EDDD61482D6638A000779A32 /* Exceptions for "SweepMines" folder in "SweepMines" target */,
 			);
-			path = Minesweeper;
+			path = SweepMines;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		ED8C8D402CDC62850030DEEC /* Frameworks */ = {
+		EDDD61332D66389F00779A32 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ED8C8D602CDC62A50030DEEC /* With in Frameworks */,
+				EDDD62682D663B8900779A32 /* With in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		ED8C8D3A2CDC62840030DEEC = {
+		EDDD612D2D66389F00779A32 = {
 			isa = PBXGroup;
 			children = (
-				ED8C8D452CDC62850030DEEC /* Minesweeper */,
-				ED8C8D442CDC62850030DEEC /* Products */,
+				EDDD61382D66389F00779A32 /* SweepMines */,
+				EDDD61372D66389F00779A32 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		ED8C8D442CDC62850030DEEC /* Products */ = {
+		EDDD61372D66389F00779A32 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				ED8C8D432CDC62850030DEEC /* Minesweeper.app */,
+				EDDD61362D66389F00779A32 /* SweepMines.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,70 +66,69 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		ED8C8D422CDC62850030DEEC /* Minesweeper */ = {
+		EDDD61352D66389F00779A32 /* SweepMines */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = ED8C8D562CDC62860030DEEC /* Build configuration list for PBXNativeTarget "Minesweeper" */;
+			buildConfigurationList = EDDD61492D6638A000779A32 /* Build configuration list for PBXNativeTarget "SweepMines" */;
 			buildPhases = (
-				ED8C8D3F2CDC62850030DEEC /* Sources */,
-				ED8C8D402CDC62850030DEEC /* Frameworks */,
-				ED8C8D412CDC62850030DEEC /* Resources */,
+				EDDD61322D66389F00779A32 /* Sources */,
+				EDDD61332D66389F00779A32 /* Frameworks */,
+				EDDD61342D66389F00779A32 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				ED8C8D452CDC62850030DEEC /* Minesweeper */,
+				EDDD61382D66389F00779A32 /* SweepMines */,
 			);
-			name = Minesweeper;
+			name = SweepMines;
 			packageProductDependencies = (
-				ED8C8D5F2CDC62A50030DEEC /* With */,
+				EDDD62672D663B8900779A32 /* With */,
 			);
-			productName = Minesweeper;
-			productReference = ED8C8D432CDC62850030DEEC /* Minesweeper.app */;
+			productName = SweepMines;
+			productReference = EDDD61362D66389F00779A32 /* SweepMines.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		ED8C8D3B2CDC62840030DEEC /* Project object */ = {
+		EDDD612E2D66389F00779A32 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1610;
+				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
-					ED8C8D422CDC62850030DEEC = {
-						CreatedOnToolsVersion = 16.1;
-						LastSwiftMigration = 1610;
+					EDDD61352D66389F00779A32 = {
+						CreatedOnToolsVersion = 16.2;
+						LastSwiftMigration = 1620;
 					};
 				};
 			};
-			buildConfigurationList = ED8C8D3E2CDC62840030DEEC /* Build configuration list for PBXProject "Minesweeper" */;
+			buildConfigurationList = EDDD61312D66389F00779A32 /* Build configuration list for PBXProject "SweepMines" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
-				"zh-Hans",
 			);
-			mainGroup = ED8C8D3A2CDC62840030DEEC;
+			mainGroup = EDDD612D2D66389F00779A32;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				ED8C8D5E2CDC62A40030DEEC /* XCRemoteSwiftPackageReference "With" */,
+				EDDD62662D663B8900779A32 /* XCRemoteSwiftPackageReference "With" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = ED8C8D442CDC62850030DEEC /* Products */;
+			productRefGroup = EDDD61372D66389F00779A32 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				ED8C8D422CDC62850030DEEC /* Minesweeper */,
+				EDDD61352D66389F00779A32 /* SweepMines */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		ED8C8D412CDC62850030DEEC /* Resources */ = {
+		EDDD61342D66389F00779A32 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -139,7 +138,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		ED8C8D3F2CDC62850030DEEC /* Sources */ = {
+		EDDD61322D66389F00779A32 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -149,18 +148,18 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		ED8C8D572CDC62860030DEEC /* Debug */ = {
+		EDDD614A2D6638A000779A32 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Minesweeper/Minesweeper.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SweepMines/SweepMines.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = V8K4KDZ2JN;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Minesweeper/Info.plist;
+				INFOPLIST_FILE = SweepMines/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = SweepMines;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.puzzle-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -173,32 +172,32 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.ktiays.Minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "Minesweeper/Minesweeper-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "SweepMines/SweepMines-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,6";
 			};
 			name = Debug;
 		};
-		ED8C8D582CDC62860030DEEC /* Release */ = {
+		EDDD614B2D6638A000779A32 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = Minesweeper/Minesweeper.entitlements;
+				CODE_SIGN_ENTITLEMENTS = SweepMines/SweepMines.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = V8K4KDZ2JN;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Minesweeper/Info.plist;
+				INFOPLIST_FILE = SweepMines/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = SweepMines;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.puzzle-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -211,25 +210,24 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = me.ktiays.Minesweeper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "Minesweeper/Minesweeper-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "SweepMines/SweepMines-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,6";
 			};
 			name = Release;
 		};
-		ED8C8D592CDC62860030DEEC /* Debug */ = {
+		EDDD614C2D6638A000779A32 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -277,24 +275,22 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
-		ED8C8D5A2CDC62860030DEEC /* Release */ = {
+		EDDD614D2D6638A000779A32 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -336,13 +332,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -350,20 +345,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		ED8C8D3E2CDC62840030DEEC /* Build configuration list for PBXProject "Minesweeper" */ = {
+		EDDD61312D66389F00779A32 /* Build configuration list for PBXProject "SweepMines" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				ED8C8D592CDC62860030DEEC /* Debug */,
-				ED8C8D5A2CDC62860030DEEC /* Release */,
+				EDDD614C2D6638A000779A32 /* Debug */,
+				EDDD614D2D6638A000779A32 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		ED8C8D562CDC62860030DEEC /* Build configuration list for PBXNativeTarget "Minesweeper" */ = {
+		EDDD61492D6638A000779A32 /* Build configuration list for PBXNativeTarget "SweepMines" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				ED8C8D572CDC62860030DEEC /* Debug */,
-				ED8C8D582CDC62860030DEEC /* Release */,
+				EDDD614A2D6638A000779A32 /* Debug */,
+				EDDD614B2D6638A000779A32 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -371,7 +366,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		ED8C8D5E2CDC62A40030DEEC /* XCRemoteSwiftPackageReference "With" */ = {
+		EDDD62662D663B8900779A32 /* XCRemoteSwiftPackageReference "With" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ktiays/With.git";
 			requirement = {
@@ -382,12 +377,12 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		ED8C8D5F2CDC62A50030DEEC /* With */ = {
+		EDDD62672D663B8900779A32 /* With */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = ED8C8D5E2CDC62A40030DEEC /* XCRemoteSwiftPackageReference "With" */;
+			package = EDDD62662D663B8900779A32 /* XCRemoteSwiftPackageReference "With" */;
 			productName = With;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = ED8C8D3B2CDC62840030DEEC /* Project object */;
+	rootObject = EDDD612E2D66389F00779A32 /* Project object */;
 }

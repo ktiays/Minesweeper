@@ -13,7 +13,7 @@
 #import "MSPCatalystHelper.h"
 #import "MSPWindowProxy+Private.h"
 #import "NSView.h"
-#import "Minesweeper-Swift.h"
+#import "SweepMines-Swift.h"
 #import "MSPToolbar.h"
 
 @interface NSObject (MinesweeperPrivate)

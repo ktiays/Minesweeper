@@ -48,4 +48,6 @@ The application provides a seamless experience across all Apple devices with exc
 
 ## License
 
-Copyright © 2025 ktiays. All rights reserved.
+MIT License
+
+Copyright (c) 2025 ktiays

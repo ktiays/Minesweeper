@@ -137,7 +137,9 @@ public final class Minefield {
     }
 
     public func placeMine(avoiding position: Position) {
+        #if DEBUG
         let now = CACurrentMediaTime()
+        #endif
 
         let neighbours = self.neighbour(of: position)
 
@@ -166,8 +168,10 @@ public final class Minefield {
         }
         self.locations = locations
 
+        #if DEBUG
         let elapsed = CACurrentMediaTime() - now
-        logger.info("\(self.numberOfMines) Mines placed in \(elapsed * 1000.0)ms")
+        logger.debug("\(self.numberOfMines) Mines placed in \(elapsed * 1000.0)ms")
+        #endif
     }
 
     @discardableResult

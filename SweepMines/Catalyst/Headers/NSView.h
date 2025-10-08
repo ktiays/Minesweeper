@@ -34,9 +34,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, strong) NSLayoutDimension *widthAnchor;
 @property (readonly, strong) NSLayoutDimension *heightAnchor;
 
-/// Adds a view to the view’s subviews so it’s displayed above its siblings.
+/// Adds a view to the view's subviews so it's displayed above its siblings.
 - (void)addSubview:(NSView *)view;
 - (void)removeFromSuperview;
+
+- (CGRect)_titlebarTitleRect;
+- (CGFloat)_toolbarLeadingSpace;
 
 @end
 

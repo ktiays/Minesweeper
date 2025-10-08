@@ -114,6 +114,9 @@ typedef NS_ENUM(NSInteger, NSWindowOrderingMode) {
 /// Converts a rectangle to the screen coordinate system from the window's coordinate system.
 - (NSRect)convertRectToScreen:(NSRect)rect;
 
+- (CGFloat)_cornerRadius;
+- (void)_setCornerRadius:(CGFloat)cornerRadius;
+
 @end
 
 NS_ASSUME_NONNULL_END

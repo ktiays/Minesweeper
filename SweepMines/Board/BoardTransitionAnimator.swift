@@ -33,7 +33,7 @@ final class BoardTransitionAnimator: NSObject, UIViewControllerAnimatedTransitio
         let containerWidth = containerView.bounds.width
         toView.frame = containerView.bounds.offsetBy(dx: isPresenting ? containerWidth : -containerWidth, dy: 0)
         
-        UIView.animate(springDuration: spring.duration, bounce: spring.bounce) {
+        UIView.animate(springDuration: spring.duration, bounce: spring.bounce, options: [.allowUserInteraction]) {
             toView.frame = containerView.bounds
             fromView.frame = containerView.bounds.offsetBy(dx: self.isPresenting ? -containerWidth : containerWidth, dy: 0)
         } completion: { _ in

@@ -11,6 +11,7 @@
 #import "MSPToolbar.h"
 #import "SweepMines-Swift.h"
 #import "NSApplication.h"
+#import "NSView.h"
 
 @implementation MSPToolbar {
     UIView *_buttonContainerView;
@@ -33,9 +34,14 @@
     auto bounds = self.bounds;
     const CGFloat padding = 12;
     if (_titleTextField) {
-        auto size = [_titleTextField bounds].size;
-        auto origin = CGPointMake(padding, (bounds.size.height - size.height) / 2);
-        _titleTextField.frame = CGRectMake(origin.x, origin.y, size.width, size.height);
+        auto titleRect = [(NSView *) _themeFrmae _titlebarTitleRect];
+        auto titleSize = titleRect.size;
+        _titleTextField.frame = CGRectMake(
+            CGRectGetMinX(titleRect),
+            (bounds.size.height - titleSize.height) / 2,
+            titleSize.width,
+            titleSize.height
+        );
     }
     if (_replayButtonView) {
         auto size = [_replayButtonView intrinsicContentSize];

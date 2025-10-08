@@ -21,9 +21,6 @@
 - (instancetype)initWithUIView:(UIView *)view;
 - (void)_removeTitleTextField;
 - (NSView *)_titleTextField;
-- (NSAttributedString *)_currentTitleTextFieldAttributedString;
-- (CGRect)_titlebarTitleRect;
-- (CGFloat)_toolbarLeadingSpace;
 - (instancetype)initWithContentNSView:(NSView *)contentNSView;
 
 @end
@@ -51,11 +48,11 @@ void prepareUINSApplicationDelegate(void) {
                 auto manager = [MSPToolbarManager sharedManager];
                 manager.leadingSpace = [themeFrame _toolbarLeadingSpace];
                 auto toolbar = [manager toolbarForWindow:window];
+                toolbar.themeFrmae = themeFrame;
                 [window addSubview:toolbar];
                 UIView *textFieldUIView = [[NSClassFromString(@"_UINSView") alloc] initWithContentNSView:titleTextField];
                 toolbar.titleTextField = textFieldUIView;
-                auto size = [themeFrame _titlebarTitleRect].size;
-                textFieldUIView.frame = CGRectMake(0, 0, size.width, size.height);
+                [toolbar setNeedsLayout];
                 
                 // Patch `removeFromSuperview` method of system text field to avoid view hierarchy error.
                 auto textFieldClass = [titleTextField class];

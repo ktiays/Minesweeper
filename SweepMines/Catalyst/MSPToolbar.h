@@ -14,6 +14,8 @@ NS_SWIFT_NAME(Toolbar)
 
 @property (nonatomic, strong, nullable) UIView *replayButtonView;
 
+@property (nonatomic, weak, nullable) id themeFrmae;
+
 - (void)updateHierarchy;
 
 @end

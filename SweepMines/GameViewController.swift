@@ -528,7 +528,6 @@ struct NavigationBar: View {
     let dismissAction: () -> Void
     let replayAction: (ReplayButton.ActionContext) -> Void
 
-    @Environment(\.isMacCatalyst) private var isMacCatalyst
     @State private var isReplayDisabled: Bool = false
 
     init<P>(

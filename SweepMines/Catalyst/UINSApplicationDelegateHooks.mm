@@ -42,6 +42,11 @@ void prepareUINSApplicationDelegate(void) {
                 if (![themeFrame isKindOfClass:NSClassFromString(@"NSThemeFrame")]) {
                     return;
                 }
+                
+                if (@available(macOS 26, *)) {
+                    [nsWindow _setCornerRadius:26];
+                }
+                
                 auto titleTextField = [themeFrame _titleTextField];
                 [titleTextField removeFromSuperview];
                 

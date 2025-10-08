@@ -132,13 +132,19 @@ final class GameViewController: UIViewController {
         )
         #endif
         gameStatusBar.frame = .init(x: 0, y: topInsets, width: bounds.width, height: statusBarHeight)
+        let boardPadding: CGFloat =
+            if #available(macOS 26, *) {
+                12
+            } else {
+                6
+            }
         boardViewController.view.frame = .init(
             x: 0,
             y: gameStatusBar.frame.maxY,
             width: bounds.width,
             height: bounds.height - gameStatusBar.frame.maxY - bottomNavigationBarHeight - bottomInsets
         )
-        .insetBy(dx: 6, dy: 6)
+        .insetBy(dx: boardPadding, dy: boardPadding)
     }
     
     #if targetEnvironment(macCatalyst)

@@ -21,6 +21,8 @@
 #import "NSViewController.h"
 #import "NSWindow.h"
 #import "NSScreen.h"
+#import "NSGlassEffectView.h"
+#import "NSColor.h"
 
 @implementation MSPMenuWindow {
     NSWindow *_window;
@@ -61,9 +63,17 @@
             _self.view.layer.cornerCurve = kCACornerCurveContinuous;
             _self.view.layer.masksToBounds = true;
 
-            NSView *effectView = [[NSClassFromString(@"NSVisualEffectView") alloc] init];
-            [effectView setValue:@(21) forKey:@"material"];
-            [effectView setValue:@(1) forKey:@"state"];
+            NSView *effectView;
+            if (@available(macCatalyst 26, *)) {
+                NSGlassEffectView *glassEffectView = [[NSClassFromString(@"NSGlassEffectView") alloc] init];
+                auto glassTintColor = (NSColor *) [NSClassFromString(@"NSColor") colorNamed:@"BoardBackgroundColor"];
+                glassEffectView.tintColor = [glassTintColor colorWithAlphaComponent:0.2];
+                effectView = glassEffectView;
+            } else {
+                effectView = [[NSClassFromString(@"NSVisualEffectView") alloc] init];
+                [effectView setValue:@(21) forKey:@"material"];
+                [effectView setValue:@(1) forKey:@"state"];
+            }
             [_self.view addSubview:effectView];
             effectView.translatesAutoresizingMaskIntoConstraints = false;
             [NSLayoutConstraint activateConstraints:@[

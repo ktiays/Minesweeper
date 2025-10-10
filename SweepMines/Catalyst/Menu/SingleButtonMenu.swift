@@ -66,8 +66,10 @@ struct SingleButtonMenu: View {
         }
         .frame(width: 180)
         .background {
-            Color.boardBackground
-                .opacity(0.7)
+            if #unavailable(macOS 26) {
+                Color.boardBackground
+                    .opacity(0.7)
+            }
         }
     }
 }
